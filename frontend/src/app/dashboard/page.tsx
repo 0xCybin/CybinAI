@@ -1,86 +1,197 @@
+'use client';
+
+import { useAuth, useRequireAuth } from '@/contexts/AuthContext';
+import Link from 'next/link';
+
 export default function DashboardPage() {
+  const { user, tenant, logout, isLoading } = useAuth();
+  const { isAuthenticated } = useRequireAuth();
+
+  // Show loading while checking auth
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/auth/login';
+  };
+
   return (
-    <div>
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
-        <p className="text-gray-600">Manage your customer conversations</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-sm text-gray-500">Open Tickets</div>
-          <div className="text-2xl font-bold text-gray-900">12</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-sm text-gray-500">AI Handled Today</div>
-          <div className="text-2xl font-bold text-green-600">24</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-sm text-gray-500">Avg. Response Time</div>
-          <div className="text-2xl font-bold text-blue-600">1.2s</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="text-sm text-gray-500">Resolution Rate</div>
-          <div className="text-2xl font-bold text-purple-600">78%</div>
-        </div>
-      </div>
-
-      {/* Conversation List */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-4 border-b">
-          <div className="flex gap-4">
-            <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-              All
-            </button>
-            <button className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-full text-sm">
-              Open
-            </button>
-            <button className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-full text-sm">
-              Pending
-            </button>
-            <button className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-full text-sm">
-              Resolved
-            </button>
-          </div>
-        </div>
-
-        {/* Empty State */}
-        <div className="p-12 text-center">
-          <div className="text-4xl mb-4">📭</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No conversations yet</h3>
-          <p className="text-gray-500 mb-4">
-            When customers start chatting, their conversations will appear here.
-          </p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
-            Set up your chat widget
-          </button>
-        </div>
-
-        {/* Sample Conversation Row (commented out - will show when data exists) */}
-        {/*
-        <div className="p-4 border-b hover:bg-gray-50 cursor-pointer">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-medium">JD</span>
-              </div>
-              <div>
-                <div className="font-medium text-gray-900">John Doe</div>
-                <div className="text-sm text-gray-500">AC not cooling properly...</div>
-              </div>
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="text-xl font-bold text-slate-900">
+                Cybin<span className="text-blue-600">AI</span>
+              </Link>
+              {tenant && (
+                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  {tenant.name}
+                </span>
+              )}
             </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-400">2 min ago</div>
-              <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                AI Handled
+            
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                {user?.name} ({user?.role})
               </span>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Sign out
+              </button>
             </div>
           </div>
         </div>
-        */}
-      </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Card */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.name?.split(' ')[0]}! 👋
+          </h1>
+          <p className="text-gray-600">
+            Here&apos;s what&apos;s happening with your customer service today.
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatsCard 
+            title="Active Conversations" 
+            value="0" 
+            change="+0%"
+            changeType="neutral"
+          />
+          <StatsCard 
+            title="AI Resolution Rate" 
+            value="--" 
+            change="No data yet"
+            changeType="neutral"
+          />
+          <StatsCard 
+            title="Avg Response Time" 
+            value="--" 
+            change="No data yet"
+            changeType="neutral"
+          />
+          <StatsCard 
+            title="Customer Satisfaction" 
+            value="--" 
+            change="No data yet"
+            changeType="neutral"
+          />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Getting Started</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <QuickAction
+              title="Set Up Chat Widget"
+              description="Add the chat widget to your website"
+              icon="💬"
+              href="/settings/widget"
+              disabled
+            />
+            <QuickAction
+              title="Create Knowledge Base"
+              description="Add FAQs and common answers"
+              icon="📚"
+              href="/knowledge-base"
+              disabled
+            />
+            <QuickAction
+              title="Connect Jobber"
+              description="Sync your customer data"
+              icon="🔗"
+              href="/integrations"
+              disabled
+            />
+          </div>
+        </div>
+
+        {/* Development Status */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-medium text-blue-900 mb-2">🚧 Development Status</h3>
+          <p className="text-sm text-blue-700">
+            Authentication is complete! Next up: Chat widget system, AI integration, and agent inbox.
+          </p>
+        </div>
+      </main>
     </div>
-  )
+  );
+}
+
+function StatsCard({ 
+  title, 
+  value, 
+  change,
+  changeType 
+}: { 
+  title: string; 
+  value: string; 
+  change: string;
+  changeType: 'positive' | 'negative' | 'neutral';
+}) {
+  const changeColors = {
+    positive: 'text-green-600',
+    negative: 'text-red-600',
+    neutral: 'text-gray-500',
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4">
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className={`text-xs mt-1 ${changeColors[changeType]}`}>{change}</p>
+    </div>
+  );
+}
+
+function QuickAction({
+  title,
+  description,
+  icon,
+  href,
+  disabled = false,
+}: {
+  title: string;
+  description: string;
+  icon: string;
+  href: string;
+  disabled?: boolean;
+}) {
+  const content = (
+    <div className={`p-4 border rounded-lg transition-colors ${
+      disabled 
+        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60' 
+        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer'
+    }`}>
+      <span className="text-2xl">{icon}</span>
+      <h3 className="font-medium text-gray-900 mt-2">{title}</h3>
+      <p className="text-sm text-gray-500 mt-1">{description}</p>
+      {disabled && <span className="text-xs text-gray-400 mt-2 block">Coming soon</span>}
+    </div>
+  );
+
+  if (disabled) {
+    return content;
+  }
+
+  return (
+    <Link href={href}>
+      {content}
+    </Link>
+  );
 }
