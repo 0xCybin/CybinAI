@@ -29,13 +29,13 @@ class CurrentUser:
         self.role = user.role
     
     def is_owner(self) -> bool:
-        return self.role == UserRole.OWNER
+        return self.role == "owner" or self.role == UserRole.OWNER
     
     def is_admin(self) -> bool:
-        return self.role in (UserRole.OWNER, UserRole.ADMIN)
+        return self.role in ("owner", "admin", UserRole.OWNER, UserRole.ADMIN)
     
     def is_agent(self) -> bool:
-        return self.role in (UserRole.OWNER, UserRole.ADMIN, UserRole.AGENT)
+        return self.role in ("owner", "admin", "agent", UserRole.OWNER, UserRole.ADMIN, UserRole.AGENT)
 
 
 async def get_current_user(
@@ -85,7 +85,7 @@ async def get_current_user(
     result = await db.execute(
         select(Tenant).where(
             Tenant.id == token_payload.tenant_id,
-            Tenant.active == True
+            Tenant.is_active == True
         )
     )
     tenant = result.scalar_one_or_none()

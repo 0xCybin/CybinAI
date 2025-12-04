@@ -8,11 +8,11 @@ from typing import Optional, List
 import enum
 
 from sqlalchemy import (
-    String, Text, Boolean, Float, DateTime, ForeignKey, 
-    Index, Enum as SQLEnum, func
+    String, Text, Boolean, Float, DateTime, ForeignKey,
+    Index, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY, ENUM
 
 from app.core.database import Base
 
@@ -75,7 +75,7 @@ class Tenant(Base, TimestampMixin):
     subdomain: Mapped[str] = mapped_column(String(63), unique=True, nullable=False, index=True)
     custom_domain: Mapped[Optional[str]] = mapped_column(String(255), unique=True)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     users: Mapped[List["User"]] = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
     customers: Mapped[List["Customer"]] = relationship("Customer", back_populates="tenant", cascade="all, delete-orphan")
@@ -93,7 +93,10 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole, name="user_role"), default=UserRole.AGENT)
+    role: Mapped[str] = mapped_column(
+        ENUM('owner', 'admin', 'agent', name='user_role', create_type=False),
+        default='agent'
+    )
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
@@ -134,9 +137,19 @@ class Conversation(Base, TimestampMixin):
     customer_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     assigned_to: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), index=True)
     subject: Mapped[Optional[str]] = mapped_column(String(500))
-    channel: Mapped[ChannelType] = mapped_column(SQLEnum(ChannelType, name="channel_type"), default=ChannelType.CHAT)
-    status: Mapped[ConversationStatus] = mapped_column(SQLEnum(ConversationStatus, name="conversation_status"), default=ConversationStatus.OPEN, index=True)
-    priority: Mapped[ConversationPriority] = mapped_column(SQLEnum(ConversationPriority, name="conversation_priority"), default=ConversationPriority.NORMAL)
+    channel: Mapped[str] = mapped_column(
+        ENUM('chat', 'email', 'sms', 'facebook', 'instagram', 'whatsapp', name='channel_type', create_type=False),
+        default='chat'
+    )
+    status: Mapped[str] = mapped_column(
+        ENUM('open', 'pending', 'resolved', 'closed', name='conversation_status', create_type=False),
+        default='open',
+        index=True
+    )
+    priority: Mapped[str] = mapped_column(
+        ENUM('low', 'normal', 'high', 'urgent', name='conversation_priority', create_type=False),
+        default='normal'
+    )
     ai_handled: Mapped[bool] = mapped_column(Boolean, default=True)
     ai_confidence: Mapped[Optional[float]] = mapped_column(Float)
     ai_summary: Mapped[Optional[str]] = mapped_column(Text)
@@ -161,7 +174,10 @@ class Message(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     conversation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
-    sender_type: Mapped[SenderType] = mapped_column(SQLEnum(SenderType, name="sender_type"), nullable=False)
+    sender_type: Mapped[str] = mapped_column(
+        ENUM('customer', 'ai', 'agent', 'system', name='sender_type', create_type=False),
+        nullable=False
+    )
     sender_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     content: Mapped[str] = mapped_column(Text, nullable=False)
     content_type: Mapped[str] = mapped_column(String(50), default="text")
@@ -202,7 +218,7 @@ class Integration(Base, TimestampMixin):
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     credentials: Mapped[dict] = mapped_column(JSONB, nullable=False)
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[Optional[str]] = mapped_column(Text)
 
