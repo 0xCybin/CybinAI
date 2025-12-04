@@ -35,7 +35,7 @@ async def resolve_tenant(tenant_id: str, service: ChatService):
     except ValueError:
         # Not a UUID, try as subdomain
         tenant = await service.get_tenant_by_subdomain(tenant_id)
-    
+
     if not tenant:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -55,11 +55,11 @@ async def get_widget_config(
     Public endpoint - no auth required.
     """
     tenant = await resolve_tenant(tenant_id, service)
-    
+
     # Get settings from tenant or use defaults
     settings = tenant.settings or {}
     widget_settings = settings.get("widget", {})
-    
+
     return WidgetConfig(
         tenant_id=str(tenant.id),
         branding=WidgetBranding(
@@ -67,7 +67,7 @@ async def get_widget_config(
             logo_url=widget_settings.get("logo_url"),
             primary_color=widget_settings.get("primary_color", "#0066CC"),
             welcome_message=widget_settings.get(
-                "welcome_message", 
+                "welcome_message",
                 f"Hi! Welcome to {tenant.name}. How can we help you today?"
             )
         ),
@@ -92,18 +92,18 @@ async def start_conversation(
     Creates a new conversation and returns the ID.
     """
     tenant = await resolve_tenant(tenant_id, service)
-    
+
     customer_info = request.customer if request else None
     initial_message = request.initial_message if request else None
-    
+
     conversation, _ = await service.start_conversation(
         tenant=tenant,
         customer_info=customer_info,
         initial_message=initial_message
     )
-    
+
     await db.commit()
-    
+
     # Get welcome message
     settings = tenant.settings or {}
     widget_settings = settings.get("widget", {})
@@ -111,7 +111,7 @@ async def start_conversation(
         "welcome_message",
         f"Hi! Welcome to {tenant.name}. How can we help you today?"
     )
-    
+
     return StartConversationResponse(
         conversation_id=str(conversation.id),
         tenant_id=str(tenant.id),
@@ -131,7 +131,7 @@ async def get_widget_conversation(
     Returns messages and current status.
     """
     tenant = await resolve_tenant(tenant_id, service)
-    
+
     try:
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
@@ -139,15 +139,15 @@ async def get_widget_conversation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid conversation ID"
         )
-    
+
     conversation = await service.get_conversation(conv_uuid, tenant.id)
-    
+
     if not conversation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found"
         )
-    
+
     return service.format_conversation_response(conversation)
 
 
@@ -164,7 +164,7 @@ async def send_widget_message(
     Triggers AI processing and returns response.
     """
     tenant = await resolve_tenant(tenant_id, service)
-    
+
     try:
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
@@ -172,27 +172,28 @@ async def send_widget_message(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid conversation ID"
         )
-    
+
     conversation = await service.get_conversation(conv_uuid, tenant.id)
-    
+
     if not conversation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found"
         )
-    
+
     # Process message and get AI response
     customer_msg, ai_msg = await service.send_customer_message(
         conversation=conversation,
+        tenant=tenant,
         content=request.content
     )
-    
+
     await db.commit()
-    
+
     return SendMessageResponse(
         customer_message=service.format_message_response(customer_msg),
         ai_response=service.format_message_response(ai_msg) if ai_msg else None,
-        ai_confidence=0.85  # Placeholder - will come from actual AI
+        ai_confidence=0.85  # TODO: Get from AI metadata
     )
 
 
@@ -207,7 +208,7 @@ async def end_widget_conversation(
     End/close a conversation from the widget.
     """
     tenant = await resolve_tenant(tenant_id, service)
-    
+
     try:
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
@@ -215,20 +216,20 @@ async def end_widget_conversation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid conversation ID"
         )
-    
+
     conversation = await service.get_conversation(conv_uuid, tenant.id)
-    
+
     if not conversation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found"
         )
-    
+
     from app.models.models import ConversationStatus as ConvStatus
     conversation.status = ConvStatus.CLOSED
-    
+
     await db.commit()
-    
+
     return {
         "message": "Conversation ended",
         "conversation_id": conversation_id
@@ -247,7 +248,7 @@ async def request_human_agent(
     Escalates the conversation.
     """
     tenant = await resolve_tenant(tenant_id, service)
-    
+
     try:
         conv_uuid = uuid.UUID(conversation_id)
     except ValueError:
@@ -255,29 +256,29 @@ async def request_human_agent(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid conversation ID"
         )
-    
+
     conversation = await service.get_conversation(conv_uuid, tenant.id)
-    
+
     if not conversation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found"
         )
-    
+
     # Mark as needing human attention
     conversation.ai_handled = False
     from app.models.models import ConversationStatus as ConvStatus, SenderType
     conversation.status = ConvStatus.PENDING
-    
+
     # Add system message
     await service.add_message(
         conversation_id=conversation.id,
         sender_type=SenderType.SYSTEM,
         content="Customer requested to speak with a human agent."
     )
-    
+
     await db.commit()
-    
+
     return {
         "message": "A human agent will be with you shortly.",
         "conversation_id": conversation_id,

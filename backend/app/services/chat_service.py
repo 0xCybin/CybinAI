@@ -1,5 +1,6 @@
 """Chat service - handles conversation and message operations."""
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -12,9 +13,12 @@ from app.models.models import (
     ConversationStatus, SenderType, ChannelType
 )
 from app.schemas.chat import (
-    CustomerInfo, StartConversationResponse, 
+    CustomerInfo, StartConversationResponse,
     MessageResponse, SendMessageResponse, ConversationResponse
 )
+from app.services.ai_service import AIService
+
+logger = logging.getLogger(__name__)
 
 
 class ChatService:
@@ -47,7 +51,7 @@ class ChatService:
         customer_info: Optional[CustomerInfo] = None
     ) -> Customer:
         """Get existing customer or create anonymous one."""
-        
+
         # If we have email, try to find existing customer
         if customer_info and customer_info.email:
             result = await self.db.execute(
@@ -83,10 +87,10 @@ class ChatService:
         initial_message: Optional[str] = None
     ) -> tuple[Conversation, Optional[Message]]:
         """Start a new conversation."""
-        
+
         # Get or create customer
         customer = await self.get_or_create_customer(tenant.id, customer_info)
-        
+
         # Create conversation
         conversation = Conversation(
             tenant_id=tenant.id,
@@ -132,7 +136,8 @@ class ChatService:
         conversation_id: uuid.UUID,
         sender_type: SenderType,
         content: str,
-        sender_id: Optional[uuid.UUID] = None
+        sender_id: Optional[uuid.UUID] = None,
+        ai_metadata: Optional[dict] = None
     ) -> Message:
         """Add a message to a conversation."""
         message = Message(
@@ -140,6 +145,7 @@ class ChatService:
             sender_type=sender_type,
             sender_id=sender_id,
             content=content,
+            ai_metadata=ai_metadata or {},
         )
         self.db.add(message)
         await self.db.flush()
@@ -148,6 +154,7 @@ class ChatService:
     async def send_customer_message(
         self,
         conversation: Conversation,
+        tenant: Tenant,
         content: str
     ) -> tuple[Message, Optional[Message]]:
         """
@@ -161,52 +168,130 @@ class ChatService:
             content=content
         )
 
-        # TODO: Replace with actual AI call
-        # For now, return a placeholder response
-        ai_content = self._get_placeholder_response(content)
-        
-        ai_msg = await self.add_message(
-            conversation_id=conversation.id,
-            sender_type=SenderType.AI,
-            content=ai_content
-        )
+        # Get conversation history for context
+        conversation_history = await self._get_conversation_history(conversation.id)
+
+        # Generate AI response
+        try:
+            ai_service = AIService(
+                tenant_id=tenant.id,
+                business_name=tenant.name,
+                business_type="hvac",  # TODO: Make this configurable per tenant
+            )
+
+            ai_response = await ai_service.generate_response(
+                conversation_history=conversation_history,
+                customer_message=content,
+            )
+
+            # Store AI metadata for analytics
+            ai_metadata = {
+                "tokens_used": ai_response.tokens_used,
+                "estimated_cost": ai_response.estimated_cost,
+                "provider": ai_response.provider,
+                "model": ai_response.model,
+                "tool_calls": [
+                    {"name": tc.name, "arguments": tc.arguments}
+                    for tc in ai_response.tool_calls
+                ],
+            }
+
+            # Handle escalation if AI requested it
+            if ai_response.should_escalate:
+                await self._handle_escalation(
+                    conversation,
+                    ai_response.escalation_reason,
+                    ai_response.escalation_priority
+                )
+
+            ai_msg = await self.add_message(
+                conversation_id=conversation.id,
+                sender_type=SenderType.AI,
+                content=ai_response.content,
+                ai_metadata=ai_metadata
+            )
+
+            logger.info(
+                f"AI response generated: tokens={ai_response.tokens_used}, "
+                f"cost=${ai_response.estimated_cost:.6f}, provider={ai_response.provider}"
+            )
+
+        except Exception as e:
+            logger.error(f"AI generation failed: {e}")
+            # Fallback to a helpful error message
+            ai_msg = await self.add_message(
+                conversation_id=conversation.id,
+                sender_type=SenderType.AI,
+                content=(
+                    "I apologize, but I'm having a bit of trouble right now. "
+                    "Would you like me to have someone from our team call you back? "
+                    "Just let me know your phone number and the best time to reach you."
+                ),
+                ai_metadata={"error": str(e)}
+            )
 
         return customer_msg, ai_msg
 
-    def _get_placeholder_response(self, customer_message: str) -> str:
-        """Placeholder AI response - will be replaced with DeepSeek integration."""
-        message_lower = customer_message.lower()
-        
-        if any(word in message_lower for word in ['hello', 'hi', 'hey']):
-            return "Hello! Thanks for reaching out to us. How can I help you today?"
-        
-        if any(word in message_lower for word in ['appointment', 'schedule', 'book', 'service']):
-            return ("I'd be happy to help you schedule a service appointment! "
-                    "Could you please tell me what type of service you need and "
-                    "your preferred date/time?")
-        
-        if any(word in message_lower for word in ['price', 'cost', 'how much', 'quote']):
-            return ("For accurate pricing, I'll need a bit more information about "
-                    "what you need. Could you describe the issue or service you're looking for?")
-        
-        if any(word in message_lower for word in ['emergency', 'urgent', 'broken', 'not working']):
-            return ("I understand this is urgent! Let me help you right away. "
-                    "Can you describe what's happening so I can assist you better? "
-                    "If this is an emergency, you can also call us directly.")
-        
-        if any(word in message_lower for word in ['human', 'agent', 'person', 'speak to']):
-            return ("Of course! Let me connect you with one of our team members. "
-                    "Please hold on a moment while I transfer this conversation.")
-        
-        return ("Thanks for your message! I'm here to help with scheduling, "
-                "pricing questions, and general inquiries. What can I assist you with?")
+    async def _get_conversation_history(
+        self,
+        conversation_id: uuid.UUID,
+        limit: int = 10
+    ) -> list[dict]:
+        """Get recent conversation history for AI context."""
+        result = await self.db.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.desc())
+            .limit(limit)
+        )
+        messages = result.scalars().all()
+
+        # Convert to format expected by AI service (oldest first)
+        history = []
+        for msg in reversed(messages):
+            role = "user" if msg.sender_type == SenderType.CUSTOMER else "assistant"
+            history.append({"role": role, "content": msg.content})
+
+        return history
+
+    async def _handle_escalation(
+        self,
+        conversation: Conversation,
+        reason: Optional[str],
+        priority: Optional[str]
+    ):
+        """Handle AI escalation request."""
+        # Update conversation status
+        conversation.ai_handled = False
+        conversation.status = ConversationStatus.PENDING
+
+        # Set priority if provided
+        if priority:
+            from app.models.models import ConversationPriority
+            priority_map = {
+                "low": ConversationPriority.LOW,
+                "normal": ConversationPriority.NORMAL,
+                "high": ConversationPriority.HIGH,
+                "urgent": ConversationPriority.URGENT,
+            }
+            if priority in priority_map:
+                conversation.priority = priority_map[priority]
+
+        # Add system message about escalation
+        await self.add_message(
+            conversation_id=conversation.id,
+            sender_type=SenderType.SYSTEM,
+            content=f"Conversation escalated to human agent. Reason: {reason or 'Customer request'}",
+        )
+
+        logger.info(f"Conversation {conversation.id} escalated: {reason}")
 
     def format_message_response(self, message: Message) -> MessageResponse:
         """Format a message for API response."""
         return MessageResponse(
             id=str(message.id),
             conversation_id=str(message.conversation_id),
-            sender_type=message.sender_type.value,
+            sender_type=message.sender_type.value if hasattr(message.sender_type, 'value') else message.sender_type,
             content=message.content,
             created_at=message.created_at
         )
@@ -215,7 +300,7 @@ class ChatService:
         """Format a conversation for API response."""
         return ConversationResponse(
             id=str(conversation.id),
-            status=conversation.status.value,
+            status=conversation.status.value if hasattr(conversation.status, 'value') else conversation.status,
             created_at=conversation.created_at,
             updated_at=conversation.updated_at,
             messages=[self.format_message_response(m) for m in conversation.messages],
