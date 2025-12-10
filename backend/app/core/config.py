@@ -104,6 +104,12 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "noreply@cybinai.com"
 
     # ==================
+    # Email - Resend
+    # ==================
+    RESEND_API_KEY: Optional[str] = None
+    EMAIL_FROM: str = "noreply@cybinai.com"
+
+    # ==================
     # Encryption
     # ==================
     ENCRYPTION_KEY: str = "your-32-byte-encryption-key-here"
