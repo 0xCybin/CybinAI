@@ -87,7 +87,6 @@ class ChatService:
         initial_message: Optional[str] = None
     ) -> tuple[Conversation, Optional[Message]]:
         """Start a new conversation."""
-
         # Get or create customer
         customer = await self.get_or_create_customer(tenant.id, customer_info)
 
@@ -173,10 +172,12 @@ class ChatService:
 
         # Generate AI response
         try:
+            # Create AI service WITH database session for Jobber integration
             ai_service = AIService(
                 tenant_id=tenant.id,
                 business_name=tenant.name,
                 business_type="hvac",  # TODO: Make this configurable per tenant
+                db=self.db,  # Pass DB session for Jobber integration
             )
 
             ai_response = await ai_service.generate_response(
@@ -195,6 +196,17 @@ class ChatService:
                     for tc in ai_response.tool_calls
                 ],
             }
+            
+            # Add tool execution results if present
+            if ai_response.tool_results:
+                ai_metadata["tool_results"] = {}
+                for tool_name, result in ai_response.tool_results.items():
+                    ai_metadata["tool_results"][tool_name] = {
+                        "success": result.success,
+                        "message": result.message,
+                        "data": result.data,
+                        "error": result.error,
+                    }
 
             # Handle escalation if AI requested it
             if ai_response.should_escalate:
@@ -211,13 +223,22 @@ class ChatService:
                 ai_metadata=ai_metadata
             )
 
+            # Log tool executions if any
+            if ai_response.tool_results:
+                for tool_name, result in ai_response.tool_results.items():
+                    status_str = "✓" if result.success else "✗"
+                    logger.info(
+                        f"Tool execution {status_str}: {tool_name} - {result.message}"
+                    )
+
             logger.info(
                 f"AI response generated: tokens={ai_response.tokens_used}, "
-                f"cost=${ai_response.estimated_cost:.6f}, provider={ai_response.provider}"
+                f"cost=${ai_response.estimated_cost:.6f}, provider={ai_response.provider}, "
+                f"tools_called={len(ai_response.tool_calls)}"
             )
 
         except Exception as e:
-            logger.error(f"AI generation failed: {e}")
+            logger.error(f"AI generation failed: {e}", exc_info=True)
             # Fallback to a helpful error message
             ai_msg = await self.add_message(
                 conversation_id=conversation.id,

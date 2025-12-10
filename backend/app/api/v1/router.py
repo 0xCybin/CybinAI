@@ -5,7 +5,15 @@ Combines all endpoint routers into a single router.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, tenants, conversations, customers, knowledge_base, widget
+from app.api.v1.endpoints import (
+    auth,
+    tenants,
+    conversations,
+    customers,
+    knowledge_base,
+    widget,
+    integrations,
+)
 
 api_router = APIRouter()
 
@@ -49,4 +57,10 @@ api_router.include_router(
     widget.router,
     prefix="/widget",
     tags=["Widget"]
+)
+
+# Integrations (Jobber, etc.)
+api_router.include_router(
+    integrations.router,
+    tags=["Integrations"]
 )

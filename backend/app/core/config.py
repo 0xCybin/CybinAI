@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "debug"
+    API_V1_PREFIX: str = "/api/v1"
 
     # ==================
     # Database
@@ -87,11 +88,11 @@ class Settings(BaseSettings):
     NEXT_PUBLIC_WS_URL: str = "ws://localhost:8000"
 
     # ==================
-    # Integrations
+    # Integrations - Jobber
     # ==================
     JOBBER_CLIENT_ID: Optional[str] = None
     JOBBER_CLIENT_SECRET: Optional[str] = None
-    JOBBER_REDIRECT_URI: str = "http://localhost:3000/api/integrations/jobber/callback"
+    JOBBER_REDIRECT_URI: str = "http://localhost:8000/api/v1/integrations/jobber/callback"
 
     # ==================
     # Email (Phase 2)

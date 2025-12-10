@@ -12,7 +12,19 @@ from app.schemas.auth import (
     MeResponse,
 )
 
+from app.schemas.knowledge_base import (
+    KBArticleCreate,
+    KBArticleUpdate,
+    KBArticleResponse,
+    KBArticleListResponse,
+    KBSearchRequest,
+    KBSearchResponse,
+    KBSearchResult,
+    KBCategoryListResponse,
+)
+
 __all__ = [
+    # Auth
     "UserRegister",
     "UserLogin",
     "TokenRefresh",
@@ -22,4 +34,13 @@ __all__ = [
     "AuthResponse",
     "TenantInfo",
     "MeResponse",
+    # Knowledge Base
+    "KBArticleCreate",
+    "KBArticleUpdate",
+    "KBArticleResponse",
+    "KBArticleListResponse",
+    "KBSearchRequest",
+    "KBSearchResponse",
+    "KBSearchResult",
+    "KBCategoryListResponse",
 ]

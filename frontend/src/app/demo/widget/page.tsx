@@ -42,15 +42,15 @@ export default function WidgetDemoPage() {
           </div>
         </section>
 
-        {/* Services Preview */}
+        {/* Services Grid */}
         <section style={pageStyles.services}>
           <h2 style={pageStyles.sectionTitle}>Our Services</h2>
-          <div style={pageStyles.serviceGrid}>
+          <div style={pageStyles.servicesGrid}>
             {[
-              { icon: '🔧', title: 'Repairs', desc: 'Fast, reliable fixes for all brands' },
-              { icon: '❄️', title: 'AC Installation', desc: 'Energy-efficient cooling solutions' },
-              { icon: '🔥', title: 'Heating', desc: 'Furnaces, heat pumps, and more' },
-              { icon: '🛡️', title: 'Maintenance', desc: 'Keep your system running smooth' },
+              { icon: '❄️', title: 'AC Repair', desc: 'Fast cooling system repairs' },
+              { icon: '🔥', title: 'Heating', desc: 'Furnace & heat pump service' },
+              { icon: '🔧', title: 'Maintenance', desc: 'Preventive tune-ups' },
+              { icon: '🏠', title: 'Installation', desc: 'New system installation' },
             ].map((service, i) => (
               <div key={i} style={pageStyles.serviceCard}>
                 <span style={pageStyles.serviceIcon}>{service.icon}</span>
@@ -61,53 +61,48 @@ export default function WidgetDemoPage() {
           </div>
         </section>
 
-        {/* Demo Notice */}
-        <section style={pageStyles.demoNotice}>
-          <div style={pageStyles.demoNoticeInner}>
-            <h3 style={pageStyles.demoTitle}>👋 This is a Widget Demo</h3>
+        {/* Demo Banner */}
+        <section style={pageStyles.demoBanner}>
+          <div style={pageStyles.demoBannerInner}>
+            <span style={pageStyles.demoBadge}>DEMO MODE</span>
             <p style={pageStyles.demoText}>
-              Click the <strong style={{ color: '#D97706' }}>amber chat bubble</strong> in the 
-              bottom-right corner to try the CybinAI chat widget. This is connected to the real 
-              backend with placeholder AI responses.
-            </p>
-            <p style={pageStyles.demoText}>
-              The widget is designed with our <strong>"Industrial Warmth"</strong> identity — 
-              professional yet approachable, standing out from generic SaaS blue.
+              This is a simulated HVAC business website. Click the chat bubble in the 
+              bottom-right corner to test the AI-powered customer service widget.
             </p>
           </div>
         </section>
       </main>
 
       <footer style={pageStyles.footer}>
-        <p>© 2025 ACME HVAC (Demo Site) · Powered by CybinAI</p>
+        <p>© 2024 ACME HVAC (Demo) • Powered by CybinAI</p>
       </footer>
 
-      {/* The CybinAI Chat Widget */}
+      {/* The Chat Widget */}
       <ChatWidget tenantId={DEMO_TENANT_ID} />
     </div>
   );
 }
 
-// Inline styles for the demo page (not part of the design system)
+// Inline styles for this demo page (dark mode)
 const pageStyles: { [key: string]: React.CSSProperties } = {
   container: {
     minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    background: 'linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 100%)',
+    background: 'linear-gradient(180deg, #1A1915 0%, #0F0E0C 100%)',
     fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+    color: '#E5E5E5',
   },
   header: {
-    background: 'white',
-    borderBottom: '1px solid #E2E8F0',
-    position: 'sticky',
+    background: 'rgba(19, 18, 16, 0.95)',
+    backdropFilter: 'blur(10px)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    padding: '16px 24px',
+    position: 'sticky' as const,
     top: 0,
     zIndex: 100,
   },
   headerInner: {
-    maxWidth: 1200,
+    maxWidth: '1200px',
     margin: '0 auto',
-    padding: '16px 24px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -115,27 +110,26 @@ const pageStyles: { [key: string]: React.CSSProperties } = {
   logo: {
     display: 'flex',
     alignItems: 'center',
-    gap: 10,
+    gap: '10px',
   },
   logoIcon: {
-    fontSize: 28,
+    fontSize: '28px',
   },
   logoText: {
-    fontFamily: "'DM Sans', sans-serif",
+    fontSize: '20px',
     fontWeight: 700,
-    fontSize: 20,
-    color: '#1E293B',
+    color: '#F5F5F4',
     letterSpacing: '-0.02em',
   },
   nav: {
     display: 'flex',
     alignItems: 'center',
-    gap: 24,
+    gap: '32px',
   },
   navLink: {
-    color: '#64748B',
+    color: '#A3A3A3',
     textDecoration: 'none',
-    fontSize: 15,
+    fontSize: '14px',
     fontWeight: 500,
     transition: 'color 0.2s',
   },
@@ -143,142 +137,140 @@ const pageStyles: { [key: string]: React.CSSProperties } = {
     background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
     color: 'white',
     padding: '10px 20px',
-    borderRadius: 8,
+    borderRadius: '8px',
     textDecoration: 'none',
-    fontSize: 15,
+    fontSize: '14px',
     fontWeight: 600,
+    boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
   },
   main: {
-    flex: 1,
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 24px',
   },
   hero: {
-    maxWidth: 800,
-    margin: '0 auto',
-    padding: '80px 24px',
-    textAlign: 'center',
+    padding: '80px 0',
+    textAlign: 'center' as const,
   },
   heroTitle: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 48,
+    fontSize: '48px',
     fontWeight: 700,
-    color: '#1E293B',
+    color: '#F5F5F4',
     lineHeight: 1.2,
-    letterSpacing: '-0.03em',
-    margin: '0 0 24px',
+    marginBottom: '24px',
+    letterSpacing: '-0.02em',
   },
   heroHighlight: {
-    background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
+    color: '#F59E0B',
   },
   heroSubtitle: {
-    fontSize: 18,
-    color: '#64748B',
+    fontSize: '18px',
+    color: '#A3A3A3',
+    maxWidth: '600px',
+    margin: '0 auto 32px',
     lineHeight: 1.6,
-    margin: '0 0 32px',
-    maxWidth: 600,
-    marginLeft: 'auto',
-    marginRight: 'auto',
   },
   heroCtas: {
     display: 'flex',
-    gap: 16,
+    gap: '16px',
     justifyContent: 'center',
-    flexWrap: 'wrap',
   },
   ctaPrimary: {
     background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
     color: 'white',
     border: 'none',
-    padding: '14px 28px',
-    fontSize: 16,
+    padding: '16px 32px',
+    borderRadius: '10px',
+    fontSize: '16px',
     fontWeight: 600,
-    borderRadius: 10,
     cursor: 'pointer',
-    boxShadow: '0 4px 14px rgba(217, 119, 6, 0.3)',
+    boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)',
   },
   ctaSecondary: {
-    background: 'white',
-    color: '#334155',
-    border: '2px solid #E2E8F0',
-    padding: '12px 26px',
-    fontSize: 16,
+    background: 'rgba(255, 255, 255, 0.05)',
+    color: '#E5E5E5',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    padding: '16px 32px',
+    borderRadius: '10px',
+    fontSize: '16px',
     fontWeight: 600,
-    borderRadius: 10,
     cursor: 'pointer',
   },
   services: {
-    maxWidth: 1000,
-    margin: '0 auto',
-    padding: '40px 24px 80px',
+    padding: '60px 0',
   },
   sectionTitle: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 32,
+    fontSize: '32px',
     fontWeight: 700,
-    color: '#1E293B',
-    textAlign: 'center',
-    marginBottom: 40,
+    color: '#F5F5F4',
+    textAlign: 'center' as const,
+    marginBottom: '40px',
+    letterSpacing: '-0.02em',
   },
-  serviceGrid: {
+  servicesGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: 24,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '24px',
   },
   serviceCard: {
-    background: 'white',
-    borderRadius: 12,
-    padding: 24,
-    textAlign: 'center',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-    border: '1px solid #E2E8F0',
+    background: '#232220',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    borderRadius: '16px',
+    padding: '32px 24px',
+    textAlign: 'center' as const,
+    transition: 'all 0.2s ease',
   },
   serviceIcon: {
-    fontSize: 36,
+    fontSize: '40px',
     display: 'block',
-    marginBottom: 12,
+    marginBottom: '16px',
   },
   serviceTitle: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 18,
+    fontSize: '18px',
     fontWeight: 600,
-    color: '#1E293B',
-    margin: '0 0 8px',
+    color: '#F5F5F4',
+    marginBottom: '8px',
   },
   serviceDesc: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: '14px',
+    color: '#A3A3A3',
     margin: 0,
-    lineHeight: 1.5,
   },
-  demoNotice: {
-    background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
-    padding: '60px 24px',
+  demoBanner: {
+    margin: '40px 0',
+    padding: '24px',
+    background: 'rgba(217, 119, 6, 0.1)',
+    border: '1px solid rgba(217, 119, 6, 0.2)',
+    borderRadius: '12px',
   },
-  demoNoticeInner: {
-    maxWidth: 600,
-    margin: '0 auto',
-    textAlign: 'center',
+  demoBannerInner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    justifyContent: 'center',
+    flexWrap: 'wrap' as const,
   },
-  demoTitle: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 24,
-    fontWeight: 600,
+  demoBadge: {
+    background: '#D97706',
     color: 'white',
-    margin: '0 0 16px',
+    padding: '4px 12px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    fontWeight: 700,
+    letterSpacing: '0.05em',
   },
   demoText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 1.6,
-    margin: '0 0 12px',
+    color: '#FCD34D',
+    fontSize: '14px',
+    margin: 0,
+    textAlign: 'center' as const,
   },
   footer: {
-    background: '#0F172A',
-    color: 'rgba(255,255,255,0.5)',
+    background: '#131210',
+    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
     padding: '24px',
-    textAlign: 'center',
-    fontSize: 14,
+    textAlign: 'center' as const,
+    color: '#737373',
+    fontSize: '14px',
   },
 };

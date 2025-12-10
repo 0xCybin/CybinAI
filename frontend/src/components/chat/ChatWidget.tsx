@@ -21,13 +21,6 @@ const ChatIcon = () => (
   </svg>
 );
 
-const CloseIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
 const SendIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="22" y1="2" x2="11" y2="13" />
@@ -125,12 +118,9 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
   useEffect(() => {
     async function loadConfig() {
       try {
-        console.log('[Widget] Loading config for tenant:', tenantId);
         const widgetConfig = await getWidgetConfig(tenantId);
-        console.log('[Widget] Config loaded:', widgetConfig);
         setConfig(widgetConfig);
-      } catch (err) {
-        console.error('[Widget] Failed to load config:', err);
+      } catch {
         // Use defaults if config fails
         setConfig({
           tenant_id: tenantId,
@@ -161,33 +151,25 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
   // Start conversation
   const initConversation = useCallback(async () => {
     if (conversationId) {
-      console.log('[Widget] Conversation already exists:', conversationId);
       return;
     }
     
     setIsLoading(true);
     try {
-      console.log('[Widget] Starting new conversation...');
       const conv = await startConversation(tenantId);
-      console.log('[Widget] Conversation started:', conv);
-      
-      // FIX: API returns conversation_id, not id
-      const convId = conv.conversation_id || conv.id;
-      console.log('[Widget] Setting conversationId to:', convId);
-      setConversationId(convId);
+      setConversationId(conv.conversation_id);
       
       // Add welcome message
       const welcomeMsg = conv.welcome_message || config?.welcome_message || 'Hi! How can we help you today?';
       setMessages([{
         id: 'welcome',
-        conversation_id: convId,
+        conversation_id: conv.conversation_id,
         sender_type: 'ai',
         content: welcomeMsg,
         created_at: new Date().toISOString(),
       }]);
-    } catch (err) {
+    } catch {
       setError('Failed to start conversation. Please try again.');
-      console.error('[Widget] Failed to start conversation:', err);
     } finally {
       setIsLoading(false);
     }
@@ -195,7 +177,6 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
 
   // Handle open/close
   const handleOpen = async () => {
-    console.log('[Widget] Opening widget');
     setIsOpen(true);
     setIsClosing(false);
     setHasNewMessage(false);
@@ -205,7 +186,6 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
   };
 
   const handleClose = () => {
-    console.log('[Widget] Closing widget');
     setIsClosing(true);
     setTimeout(() => {
       setIsOpen(false);
@@ -215,29 +195,7 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
 
   // Send message
   const handleSend = async () => {
-    console.log('[Widget] handleSend called', { 
-      inputValue, 
-      conversationId, 
-      isSending,
-      inputTrimmed: inputValue.trim(),
-      hasInput: !!inputValue.trim(),
-      hasConversation: !!conversationId,
-      notSending: !isSending
-    });
-    
-    if (!inputValue.trim()) {
-      console.log('[Widget] No input value, returning');
-      return;
-    }
-    
-    if (!conversationId) {
-      console.log('[Widget] No conversationId, returning');
-      setError('No active conversation. Please refresh and try again.');
-      return;
-    }
-    
-    if (isSending) {
-      console.log('[Widget] Already sending, returning');
+    if (!inputValue.trim() || !conversationId || isSending) {
       return;
     }
 
@@ -255,11 +213,9 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
       created_at: new Date().toISOString(),
     };
     setMessages(prev => [...prev, tempCustomerMsg]);
-    console.log('[Widget] Added optimistic message, sending to API...');
 
     try {
       const response = await sendMessage(tenantId, conversationId, content);
-      console.log('[Widget] Message sent, response:', response);
       
       // Replace temp message with real one and add AI response
       setMessages(prev => {
@@ -270,8 +226,7 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
         }
         return newMessages;
       });
-    } catch (err) {
-      console.error('[Widget] Failed to send message:', err);
+    } catch {
       setError('Failed to send message. Please try again.');
       // Remove optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempCustomerMsg.id));
@@ -285,7 +240,6 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      console.log('[Widget] Enter key pressed');
       handleSend();
     }
   };
@@ -295,7 +249,6 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     if (!conversationId) return;
     
     try {
-      console.log('[Widget] Requesting human agent');
       await requestHumanAgent(tenantId, conversationId, 'Customer requested human assistance');
       setMessages(prev => [...prev, {
         id: `system-${Date.now()}`,
@@ -304,16 +257,10 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
         content: 'I\'ve notified our team. A human agent will be with you shortly. Please hold tight!',
         created_at: new Date().toISOString(),
       }]);
-    } catch (err) {
+    } catch {
       setError('Failed to request human agent.');
-      console.error('[Widget] Failed to request human:', err);
     }
   };
-
-  // Debug: log state changes
-  useEffect(() => {
-    console.log('[Widget] State updated:', { conversationId, messagesCount: messages.length, isLoading, isSending });
-  }, [conversationId, messages.length, isLoading, isSending]);
 
   if (!config) return null;
 

@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import TokenPayload
+from app.core.security import decode_token, TokenPayload
 from app.models.models import User, Tenant, UserRole
 
 
@@ -43,103 +43,130 @@ async def get_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CurrentUser:
     """Dependency that extracts and validates the JWT token."""
-    if credentials is None:
+    
+    if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token_payload = TokenPayload.from_token(credentials.credentials)
+    token = credentials.credentials
     
-    if token_payload is None:
+    # decode_token returns a dict or None
+    payload_dict = decode_token(token)
+    
+    if payload_dict is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    if token_payload.token_type != "access":
+    # Convert dict to TokenPayload object
+    try:
+        payload = TokenPayload(payload_dict)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token payload: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check token type (access it from the object now)
+    if payload.token_type != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Get user from database
     result = await db.execute(
-        select(User).where(
-            User.id == token_payload.user_id,
-            User.tenant_id == token_payload.tenant_id,
-            User.is_active == True
-        )
+        select(User).where(User.id == payload.user_id)
     )
     user = result.scalar_one_or_none()
     
-    if user is None:
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
+            detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    result = await db.execute(
-        select(Tenant).where(
-            Tenant.id == token_payload.tenant_id,
-            Tenant.is_active == True
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is inactive",
+            headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Get tenant
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == user.tenant_id)
     )
     tenant = result.scalar_one_or_none()
     
-    if tenant is None:
+    if not tenant:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant not found or inactive",
+            detail="Tenant not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not tenant.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Tenant is inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     return CurrentUser(user=user, tenant=tenant)
 
 
-async def get_current_user_optional(
-    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(security)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> Optional[CurrentUser]:
-    """Like get_current_user, but returns None instead of raising."""
-    if credentials is None:
-        return None
-    try:
-        return await get_current_user(credentials, db)
-    except HTTPException:
-        return None
-
-
 async def require_admin(
-    current: Annotated[CurrentUser, Depends(get_current_user)]
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> CurrentUser:
-    """Requires admin or owner role."""
-    if not current.is_admin():
+    """Dependency that requires admin or owner role."""
+    if not current_user.is_admin():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            detail="Admin or owner role required",
         )
-    return current
+    return current_user
 
 
 async def require_owner(
-    current: Annotated[CurrentUser, Depends(get_current_user)]
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> CurrentUser:
-    """Requires owner role."""
-    if not current.is_owner():
+    """Dependency that requires owner role."""
+    if not current_user.is_owner():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Owner access required"
+            detail="Owner role required",
         )
-    return current
+    return current_user
 
 
-# Type aliases
-AuthenticatedUser = Annotated[CurrentUser, Depends(get_current_user)]
-OptionalUser = Annotated[Optional[CurrentUser], Depends(get_current_user_optional)]
-AdminUser = Annotated[CurrentUser, Depends(require_admin)]
-OwnerUser = Annotated[CurrentUser, Depends(require_owner)]
+def get_tenant_id(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
+) -> UUID:
+    """Dependency that returns just the tenant ID."""
+    return current_user.tenant_id
+
+
+# =============================================================================
+# Type Aliases for cleaner endpoint signatures
+# =============================================================================
+
+# Database session dependency
 DbSession = Annotated[AsyncSession, Depends(get_db)]
+
+# Authenticated user dependency
+AuthenticatedUser = Annotated[CurrentUser, Depends(get_current_user)]
+
+# Admin user dependency
+AdminUser = Annotated[CurrentUser, Depends(require_admin)]
+
+# Owner user dependency  
+OwnerUser = Annotated[CurrentUser, Depends(require_owner)]

@@ -1,177 +1,223 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth, useRequireAuth } from '@/contexts/AuthContext';
-import { 
-  conversationsApi, 
-  ConversationListItem, 
-  ConversationDetail, 
-  ConversationStatus 
-} from '@/lib/api';
-import { ConversationList } from '@/components/agent/ConversationList';
-import { ConversationPanel } from '@/components/agent/ConversationPanel';
-import { AgentSidebar } from '@/components/agent/AgentSidebar';
 import Link from 'next/link';
+import { useAuth, useRequireAuth } from '@/contexts/AuthContext';
+import { getAccessToken } from '@/lib/api';
+import { AgentSidebar } from '@/components/agent/AgentSidebar';
+import { ConversationList, Conversation } from '@/components/agent/ConversationList';
+import { ConversationPanel } from '@/components/agent/ConversationPanel';
+import { Loader2 } from 'lucide-react';
 
-type FilterView = 'all' | 'unassigned' | 'mine' | 'resolved';
+const API_URL = 'http://localhost:8000';
 
-export default function AgentDashboardPage() {
-  const { user, tenant, logout, isLoading } = useAuth();
+interface Message {
+  id: string;
+  content: string;
+  sender_type: 'customer' | 'ai' | 'agent';
+  sender_name: string | null;
+  created_at: string;
+}
+
+interface ConversationDetail extends Conversation {
+  messages: Message[];
+  customer: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+  };
+}
+
+export default function AgentInboxPage() {
+  const { user, logout, isLoading: authLoading } = useAuth();
   const { isAuthenticated } = useRequireAuth();
   
-  // State
-  const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [activeView, setActiveView] = useState<'all' | 'unassigned' | 'mine' | 'resolved'>('all');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ConversationDetail | null>(null);
-  const [activeView, setActiveView] = useState<FilterView>('all');
   const [loadingList, setLoadingList] = useState(true);
-  const [loadingConversation, setLoadingConversation] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch conversations based on active view
+  const getAuthHeaders = useCallback(() => {
+    const token = getAccessToken();
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  }, []);
+
   const fetchConversations = useCallback(async () => {
     setLoadingList(true);
-    setError(null);
-    
     try {
-      const filters: Record<string, unknown> = {};
+      let url = `${API_URL}/api/v1/conversations/?`;
       
-      switch (activeView) {
-        case 'unassigned':
-          filters.unassigned_only = true;
-          break;
-        case 'mine':
-          filters.assigned_to = user?.id;
-          break;
-        case 'resolved':
-          filters.status = 'resolved';
-          break;
+      if (activeView === 'unassigned') {
+        url += 'unassigned_only=true';
+      } else if (activeView === 'mine' && user?.id) {
+        url += `assigned_to=${user.id}`;
+      } else if (activeView === 'resolved') {
+        url += 'status=resolved';
       }
+
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error('Failed to fetch conversations');
       
-      const response = await conversationsApi.list(filters);
-      setConversations(response.items);
+      const data = await res.json();
+      setConversations(data.conversations || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
       setLoadingList(false);
     }
-  }, [activeView, user?.id]);
+  }, [activeView, user?.id, getAuthHeaders]);
 
-  // Load conversations on mount and when view changes
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchConversations();
-    }
-  }, [isAuthenticated, user, fetchConversations]);
-
-  // Polling for new conversations (every 10 seconds)
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-    
-    const interval = setInterval(() => {
-      fetchConversations();
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [isAuthenticated, user, fetchConversations]);
-
-  // Select a conversation
-  const handleSelectConversation = async (id: string) => {
-    setLoadingConversation(true);
+  const fetchConversationDetail = useCallback(async (id: string) => {
+    setLoadingDetail(true);
     try {
-      const detail = await conversationsApi.get(id);
-      setSelectedConversation(detail);
+      const res = await fetch(`${API_URL}/api/v1/conversations/${id}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to fetch conversation');
+      
+      const data = await res.json();
+      setSelectedConversation(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversation');
     } finally {
-      setLoadingConversation(false);
+      setLoadingDetail(false);
     }
+  }, [getAuthHeaders]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchConversations();
+    }
+  }, [isAuthenticated, fetchConversations]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isAuthenticated) {
+        fetchConversations();
+        if (selectedConversation) {
+          fetchConversationDetail(selectedConversation.id);
+        }
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, selectedConversation, fetchConversations, fetchConversationDetail]);
+
+  const handleSelectConversation = (conv: Conversation) => {
+    fetchConversationDetail(conv.id);
   };
 
-  // Take over (assign to self)
   const handleTakeOver = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !user) return;
+    
     try {
-      const updated = await conversationsApi.assign(selectedConversation.id);
-      setSelectedConversation(updated);
-      fetchConversations();
+      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/assign`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ agent_id: user.id }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to assign conversation');
+      
+      await fetchConversationDetail(selectedConversation.id);
+      await fetchConversations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to take over conversation');
     }
   };
 
-  // Return to AI
   const handleReturnToAI = async () => {
     if (!selectedConversation) return;
+    
     try {
-      const updated = await conversationsApi.unassign(selectedConversation.id);
-      setSelectedConversation(updated);
-      fetchConversations();
+      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/assign`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ agent_id: null }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to return to AI');
+      
+      await fetchConversationDetail(selectedConversation.id);
+      await fetchConversations();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to return to AI');
     }
   };
 
-  // Update status
-  const handleStatusChange = async (status: ConversationStatus) => {
-    if (!selectedConversation) return;
-    try {
-      const updated = await conversationsApi.updateStatus(selectedConversation.id, status);
-      setSelectedConversation(updated);
-      fetchConversations();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update status');
-    }
-  };
-
-  // Send message
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
+    
     try {
-      await conversationsApi.sendMessage(selectedConversation.id, content);
-      // Refresh the conversation to get the new message
-      const updated = await conversationsApi.get(selectedConversation.id);
-      setSelectedConversation(updated);
-      fetchConversations();
+      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/messages`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to send message');
+      
+      await fetchConversationDetail(selectedConversation.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }
   };
 
-  // Loading state
-  if (isLoading || !isAuthenticated) {
+  const handleStatusChange = async (status: string) => {
+    if (!selectedConversation) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/status`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to update status');
+      
+      await fetchConversationDetail(selectedConversation.id);
+      await fetchConversations();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
+  };
+
+  if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-[#1A1915] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
+    <div className="h-screen bg-[#1A1915] flex flex-col">
+      {/* Header */}
+      <header className="bg-[#131210] border-b border-neutral-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-4">
-          <Link href="/dashboard" className="text-xl font-bold text-slate-900">
-            Cybin<span className="text-blue-600">AI</span>
+          <Link href="/dashboard" className="text-xl font-bold text-neutral-100">
+            Cybin<span className="text-amber-500">AI</span>
           </Link>
-          {tenant && (
-            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {tenant.name}
-            </span>
-          )}
-          <span className="text-sm text-blue-600 font-medium">Agent Dashboard</span>
+          <span className="text-neutral-600">|</span>
+          <span className="text-neutral-400 text-sm font-medium">Agent Inbox</span>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-            <span className="text-sm text-gray-600">{user?.name}</span>
+            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+            <span className="text-sm text-neutral-400">{user?.name}</span>
           </div>
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">
+          <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-300">
             Dashboard
           </Link>
           <button
             onClick={() => { logout(); window.location.href = '/auth/login'; }}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-neutral-500 hover:text-neutral-300"
           >
             Sign out
           </button>
@@ -180,9 +226,9 @@ export default function AgentDashboardPage() {
 
       {/* Error Banner */}
       {error && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2 text-red-700 text-sm flex-shrink-0">
+        <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2 text-red-400 text-sm flex-shrink-0">
           {error}
-          <button onClick={() => setError(null)} className="ml-4 underline">Dismiss</button>
+          <button onClick={() => setError(null)} className="ml-4 text-red-300 hover:text-red-200 underline">Dismiss</button>
         </div>
       )}
 
@@ -200,12 +246,12 @@ export default function AgentDashboardPage() {
         />
 
         {/* Conversation List */}
-        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 capitalize">{activeView} Conversations</h2>
+        <div className="w-80 bg-[#1E1C19] border-r border-neutral-800 flex flex-col">
+          <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
+            <h2 className="font-semibold text-neutral-200 capitalize">{activeView} Conversations</h2>
             <button 
               onClick={fetchConversations}
-              className="text-sm text-blue-600 hover:text-blue-700"
+              className="text-sm text-amber-500 hover:text-amber-400"
             >
               Refresh
             </button>
@@ -219,25 +265,22 @@ export default function AgentDashboardPage() {
         </div>
 
         {/* Conversation Panel */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-[#1A1915]">
           {selectedConversation ? (
             <ConversationPanel
               conversation={selectedConversation}
-              currentUserId={user?.id || ''}
-              loading={loadingConversation}
+              currentUserId={user?.id}
               onTakeOver={handleTakeOver}
               onReturnToAI={handleReturnToAI}
-              onStatusChange={handleStatusChange}
               onSendMessage={handleSendMessage}
+              onStatusChange={handleStatusChange}
+              loading={loadingDetail}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500">
+            <div className="flex-1 flex items-center justify-center text-neutral-500">
               <div className="text-center">
-                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <p className="text-lg font-medium">Select a conversation</p>
-                <p className="text-sm">Choose from the list to view details</p>
+                <div className="text-4xl mb-3 opacity-50">💬</div>
+                <p>Select a conversation to view</p>
               </div>
             </div>
           )}

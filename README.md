@@ -160,3 +160,38 @@ cd frontend && npm run type-check
 ## 📝 License
 
 Proprietary - All rights reserved.
+
+
+Step 1: Start Docker (PostgreSQL + Redis)
+cd C:\Users\0xCyb\CybinAI
+docker-compose up -d
+
+
+Step 2: Start the Backend
+cd C:\Users\0xCyb\CybinAI\backend
+.\venv\Scripts\activate
+uvicorn app.main:app --reload
+```
+
+You should see output like:
+```
+INFO:     Uvicorn running on http://127.0.0.1:8000
+INFO:     Started reloader process
+Verify it's working by opening: http://localhost:8000/docs
+
+
+
+
+
+Step 3: Start the Frontend
+Open a third PowerShell terminal:
+cd C:\Users\0xCyb\CybinAI\frontend
+npm run dev
+```
+
+You should see:
+```
+▲ Next.js 15.x.x
+- Local: http://localhost:3000
+
+
