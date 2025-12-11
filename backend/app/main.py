@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.api.v1.router import api_router
+from app.core.websocket import socket_app
 
 
 @asynccontextmanager
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     print(f"🚀 Starting CybinAI API in {settings.ENVIRONMENT} mode")
+    print(f"🔌 WebSocket server available at /ws/socket.io")
     # TODO: Initialize database connection pool
     # TODO: Initialize Redis connection
     # TODO: Initialize AI service
@@ -50,6 +52,10 @@ app.add_middleware(
 # Include API routes
 app.include_router(api_router, prefix="/api/v1")
 
+# Mount Socket.IO for WebSocket support
+# This handles connections at /ws/socket.io
+app.mount("/ws", socket_app)
+
 
 @app.get("/health")
 async def health_check():
@@ -58,6 +64,7 @@ async def health_check():
         "status": "healthy",
         "version": "0.1.0",
         "environment": settings.ENVIRONMENT,
+        "websocket": "/ws/socket.io",
     }
 
 
@@ -68,4 +75,5 @@ async def root():
         "name": "CybinAI",
         "message": "AI-Powered Customer Service Platform",
         "docs": "/docs" if settings.DEBUG else "Documentation disabled in production",
+        "websocket": "/ws/socket.io",
     }

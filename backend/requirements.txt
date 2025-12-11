@@ -4,6 +4,9 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 
+# WebSocket (Socket.IO)
+python-socketio==5.11.0
+
 # Database
 sqlalchemy==2.0.36
 asyncpg==0.30.0
@@ -32,6 +35,9 @@ langchain-community==0.3.13
 # HTTP Client (for integrations)
 httpx==0.28.1
 aiohttp==3.11.11
+
+# Email (Resend)
+resend==2.0.0
 
 # Utilities
 python-dateutil==2.9.0

@@ -7,7 +7,8 @@ import { getAccessToken } from '@/lib/api';
 import { AgentSidebar } from '@/components/agent/AgentSidebar';
 import { ConversationList, Conversation } from '@/components/agent/ConversationList';
 import { ConversationPanel } from '@/components/agent/ConversationPanel';
-import { Loader2 } from 'lucide-react';
+import { useSocket } from '@/hooks/useSocket';
+import { Loader2, Wifi, WifiOff } from 'lucide-react';
 
 const API_URL = 'http://localhost:8000';
 
@@ -30,7 +31,7 @@ interface ConversationDetail extends Conversation {
 }
 
 export default function AgentInboxPage() {
-  const { user, logout, isLoading: authLoading } = useAuth();
+  const { user, tenant, logout, isLoading: authLoading } = useAuth();
   const { isAuthenticated } = useRequireAuth();
   
   const [activeView, setActiveView] = useState<'all' | 'unassigned' | 'mine' | 'resolved'>('all');
@@ -47,6 +48,128 @@ export default function AgentInboxPage() {
       'Content-Type': 'application/json',
     };
   }, []);
+
+  // =========================================================================
+  // WebSocket Integration
+  // =========================================================================
+  
+ const handleNewConversation = useCallback((data: { id: string; customer: { name: string; email: string | null }; channel: string; status: string; ai_handled: boolean; created_at: string }) => {
+    console.log('[AgentInbox] New conversation received:', data.id);
+    
+    // Add to conversation list
+    setConversations(prev => {
+      // Check if already exists
+      if (prev.some(c => c.id === data.id)) {
+        return prev;
+      }
+      
+      // Add new conversation at the top
+      const newConv: Conversation = {
+        id: data.id,
+        customer_name: data.customer?.name || 'Anonymous',
+        customer_email: data.customer?.email || null,
+        channel: data.channel,
+        status: data.status,
+        priority: 'normal',
+        ai_handled: data.ai_handled,
+        last_message_preview: '',
+        last_message_at: data.created_at,
+        message_count: 0,
+        created_at: data.created_at,
+        updated_at: data.created_at,
+        assigned_to: null,
+        assigned_to_name: null,
+      };
+      
+      return [newConv, ...prev];
+    });
+  }, []);
+
+  const handleNewMessage = useCallback((data: { conversation_id: string; message: { id: string; content: string; sender_type: string; sender_name: string; created_at: string } }) => {
+    console.log('[AgentInbox] New message received:', data.conversation_id);
+    
+    // Update conversation list with new message preview
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === data.conversation_id) {
+        return {
+          ...conv,
+          last_message_preview: data.message.content.substring(0, 100),
+          last_message_at: data.message.created_at,
+        };
+      }
+      return conv;
+    }));
+    
+    // If this conversation is currently selected, add the message
+    setSelectedConversation(prev => {
+      if (prev && prev.id === data.conversation_id) {
+        // Check if message already exists
+        if (prev.messages.some(m => m.id === data.message.id)) {
+          return prev;
+        }
+        
+        return {
+          ...prev,
+          messages: [
+            ...prev.messages,
+            {
+              id: data.message.id,
+              content: data.message.content,
+              sender_type: data.message.sender_type as 'customer' | 'ai' | 'agent',
+              sender_name: data.message.sender_name,
+              created_at: data.message.created_at,
+            },
+          ],
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleConversationUpdated = useCallback((data: { conversation_id: string; status?: string; ai_handled?: boolean; assigned_to?: string | null; assigned_agent_name?: string | null }) => {
+    console.log('[AgentInbox] Conversation updated:', data.conversation_id);
+    
+    // Update conversation in list
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === data.conversation_id) {
+        return {
+          ...conv,
+          ...(data.status !== undefined && { status: data.status }),
+          ...(data.ai_handled !== undefined && { ai_handled: data.ai_handled }),
+          ...(data.assigned_to !== undefined && { assigned_to: data.assigned_to }),
+        };
+      }
+      return conv;
+    }));
+    
+    // Update selected conversation if it matches
+    setSelectedConversation(prev => {
+      if (prev && prev.id === data.conversation_id) {
+        return {
+          ...prev,
+          ...(data.status !== undefined && { status: data.status }),
+          ...(data.ai_handled !== undefined && { ai_handled: data.ai_handled }),
+          ...(data.assigned_to !== undefined && { assigned_to: data.assigned_to }),
+          ...(data.assigned_agent_name !== undefined && { assigned_agent_name: data.assigned_agent_name }),
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  // Connect to WebSocket
+  const { isConnected, joinConversation, leaveConversation } = useSocket({
+    tenantId: tenant?.id || '',
+    userId: user?.id || '',
+    onNewConversation: handleNewConversation,
+    onNewMessage: handleNewMessage,
+    onConversationUpdated: handleConversationUpdated,
+    enabled: isAuthenticated && !!tenant?.id && !!user?.id,
+  });
+
+  // =========================================================================
+  // API Calls
+  // =========================================================================
 
   const fetchConversations = useCallback(async () => {
     setLoadingList(true);
@@ -65,7 +188,7 @@ export default function AgentInboxPage() {
       if (!res.ok) throw new Error('Failed to fetch conversations');
       
       const data = await res.json();
-      setConversations(data.conversations || []);
+      setConversations(data.items || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
@@ -90,13 +213,20 @@ export default function AgentInboxPage() {
     }
   }, [getAuthHeaders]);
 
+  // Initial load
   useEffect(() => {
     if (isAuthenticated) {
       fetchConversations();
     }
   }, [isAuthenticated, fetchConversations]);
 
+  // Fallback polling (reduced frequency since we have WebSocket)
   useEffect(() => {
+    // Only poll if WebSocket is not connected
+    if (isConnected) {
+      return;
+    }
+    
     const interval = setInterval(() => {
       if (isAuthenticated) {
         fetchConversations();
@@ -104,27 +234,38 @@ export default function AgentInboxPage() {
           fetchConversationDetail(selectedConversation.id);
         }
       }
-    }, 10000);
+    }, 15000); // Slower polling when WebSocket is down
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, selectedConversation, fetchConversations, fetchConversationDetail]);
+  }, [isAuthenticated, isConnected, selectedConversation, fetchConversations, fetchConversationDetail]);
+
+  // =========================================================================
+  // Event Handlers
+  // =========================================================================
 
   const handleSelectConversation = (conv: Conversation) => {
+    // Leave previous conversation room
+    if (selectedConversation) {
+      leaveConversation(selectedConversation.id);
+    }
+    
+    // Fetch and join new conversation
     fetchConversationDetail(conv.id);
+    joinConversation(conv.id);
   };
 
   const handleTakeOver = async () => {
     if (!selectedConversation || !user) return;
     
     try {
-      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/assign`, {
+      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/take-over`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ agent_id: user.id }),
       });
       
-      if (!res.ok) throw new Error('Failed to assign conversation');
+      if (!res.ok) throw new Error('Failed to take over conversation');
       
+      // WebSocket will update the state, but we can also refresh manually
       await fetchConversationDetail(selectedConversation.id);
       await fetchConversations();
     } catch (err) {
@@ -136,10 +277,9 @@ export default function AgentInboxPage() {
     if (!selectedConversation) return;
     
     try {
-      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/assign`, {
+      const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/unassign`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ agent_id: null }),
       });
       
       if (!res.ok) throw new Error('Failed to return to AI');
@@ -163,20 +303,21 @@ export default function AgentInboxPage() {
       
       if (!res.ok) throw new Error('Failed to send message');
       
+      // WebSocket will add the message, but refresh just in case
       await fetchConversationDetail(selectedConversation.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }
   };
 
-  const handleStatusChange = async (status: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     if (!selectedConversation) return;
     
     try {
       const res = await fetch(`${API_URL}/api/v1/conversations/${selectedConversation.id}/status`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus }),
       });
       
       if (!res.ok) throw new Error('Failed to update status');
@@ -188,28 +329,49 @@ export default function AgentInboxPage() {
     }
   };
 
-  if (authLoading || !isAuthenticated) {
+  // =========================================================================
+  // Render
+  // =========================================================================
+
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#1A1915] flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-[#131210]">
         <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     );
   }
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="h-screen bg-[#1A1915] flex flex-col">
+    <div className="h-screen flex flex-col bg-[#131210] text-neutral-100">
       {/* Header */}
-      <header className="bg-[#131210] border-b border-neutral-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center space-x-4">
-          <Link href="/dashboard" className="text-xl font-bold text-neutral-100">
-            Cybin<span className="text-amber-500">AI</span>
-          </Link>
-          <span className="text-neutral-600">|</span>
-          <span className="text-neutral-400 text-sm font-medium">Agent Inbox</span>
+      <header className="bg-[#1A1915] border-b border-neutral-800 px-6 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-neutral-100">Agent Inbox</h1>
+          {/* WebSocket Connection Status */}
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+            isConnected 
+              ? 'bg-emerald-500/10 text-emerald-400' 
+              : 'bg-red-500/10 text-red-400'
+          }`}>
+            {isConnected ? (
+              <>
+                <Wifi className="w-3 h-3" />
+                <span>Live</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3" />
+                <span>Offline</span>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
             <span className="text-sm text-neutral-400">{user?.name}</span>
           </div>
           <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-300">
@@ -281,6 +443,9 @@ export default function AgentInboxPage() {
               <div className="text-center">
                 <div className="text-4xl mb-3 opacity-50">💬</div>
                 <p>Select a conversation to view</p>
+                {isConnected && (
+                  <p className="text-xs text-emerald-400 mt-2">Real-time updates active</p>
+                )}
               </div>
             </div>
           )}

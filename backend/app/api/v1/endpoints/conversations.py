@@ -316,6 +316,19 @@ async def assign_conversation(
     return await get_conversation(conversation_id, db, current)
 
 
+@router.post("/{conversation_id}/take-over", response_model=ConversationDetail, summary="Take over conversation")
+async def take_over_conversation(
+    conversation_id: UUID,
+    db: DbSession,
+    current: AuthenticatedUser,
+):
+    """
+    Take over a conversation (assign to current user).
+    Shortcut for assign with no agent_id.
+    """
+    return await assign_conversation(conversation_id, db, current, None)
+
+
 @router.post("/{conversation_id}/unassign", response_model=ConversationDetail, summary="Unassign conversation")
 async def unassign_conversation(
     conversation_id: UUID,
