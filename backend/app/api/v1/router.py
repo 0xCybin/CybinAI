@@ -13,7 +13,8 @@ from app.api.v1.endpoints import (
     knowledge_base,
     widget,
     integrations,
-    email,  # NEW
+    email,
+    analytics,  # NEW
 )
 
 api_router = APIRouter()
@@ -66,9 +67,16 @@ api_router.include_router(
     tags=["Integrations"]
 )
 
-# Email channel endpoints (NEW)
+# Email channel endpoints
 api_router.include_router(
     email.router,
     prefix="/email",
     tags=["Email"]
+)
+
+# Analytics dashboard endpoints (NEW)
+api_router.include_router(
+    analytics.router,
+    prefix="/analytics",
+    tags=["Analytics"]
 )

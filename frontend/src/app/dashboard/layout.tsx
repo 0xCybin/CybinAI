@@ -82,7 +82,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             href="/dashboard"
             icon={<LayoutDashboard size={20} />}
             label="Overview"
-            isActive={isActive('/dashboard')}
+            isActive={isActive('/dashboard') && !pathname.includes('/analytics')}
           />
           <NavItem
             href="/agent"
@@ -95,6 +95,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             icon={<BookOpen size={20} />}
             label="Knowledge Base"
             isActive={isActive('/admin/knowledge-base')}
+          />
+          <NavItem
+            href="/dashboard/analytics"
+            icon={<BarChart3 size={20} />}
+            label="Analytics"
+            isActive={isActive('/dashboard/analytics')}
           />
           <NavItem
             href="/demo/widget"
@@ -114,12 +120,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             href="#"
             icon={<Users size={20} />}
             label="Customers"
-            disabled
-          />
-          <NavItem
-            href="#"
-            icon={<BarChart3 size={20} />}
-            label="Analytics"
             disabled
           />
           <NavItem
