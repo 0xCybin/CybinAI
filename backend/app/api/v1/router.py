@@ -14,7 +14,8 @@ from app.api.v1.endpoints import (
     widget,
     integrations,
     email,
-    analytics,  # NEW
+    analytics,
+    settings,  # NEW - Admin Settings
 )
 
 api_router = APIRouter()
@@ -74,9 +75,16 @@ api_router.include_router(
     tags=["Email"]
 )
 
-# Analytics dashboard endpoints (NEW)
+# Analytics dashboard endpoints
 api_router.include_router(
     analytics.router,
     prefix="/analytics",
     tags=["Analytics"]
+)
+
+# Admin settings endpoints (NEW)
+api_router.include_router(
+    settings.router,
+    prefix="/settings",
+    tags=["Settings"]
 )

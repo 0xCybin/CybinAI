@@ -112,6 +112,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Divider */}
           <div className="my-4 border-t border-neutral-800" />
 
+          {/* Admin Section */}
+          <p className="px-3 py-2 text-[11px] font-semibold text-neutral-600 uppercase tracking-wider">
+            Admin
+          </p>
+          <NavItem
+            href="/admin/settings"
+            icon={<Settings size={20} />}
+            label="Settings"
+            isActive={isActive('/admin/settings')}
+          />
+
+          {/* Divider */}
+          <div className="my-4 border-t border-neutral-800" />
+
           {/* Coming Soon Section */}
           <p className="px-3 py-2 text-[11px] font-semibold text-neutral-600 uppercase tracking-wider">
             Coming Soon
@@ -126,12 +140,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             href="#"
             icon={<Link2 size={20} />}
             label="Integrations"
-            disabled
-          />
-          <NavItem
-            href="#"
-            icon={<Settings size={20} />}
-            label="Settings"
             disabled
           />
         </nav>
