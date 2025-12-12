@@ -45,6 +45,32 @@ const UserIcon = () => (
 );
 
 // ============================================
+// HELPER: Darken/lighten color for gradients
+// ============================================
+function adjustColor(hex: string, percent: number): string {
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  const adjust = (value: number) => {
+    if (percent > 0) {
+      // Lighten
+      return Math.min(255, Math.floor(value + (255 - value) * (percent / 100)));
+    } else {
+      // Darken
+      return Math.max(0, Math.floor(value * (1 + percent / 100)));
+    }
+  };
+  
+  const newR = adjust(r);
+  const newG = adjust(g);
+  const newB = adjust(b);
+  
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+}
+
+// ============================================
 // TYPING INDICATOR
 // ============================================
 
@@ -63,11 +89,39 @@ const TypingIndicator = () => (
 interface MessageBubbleProps {
   message: Message;
   isLatest: boolean;
+  colors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+  };
 }
 
-const MessageBubble = ({ message, isLatest }: MessageBubbleProps) => {
+const MessageBubble = ({ message, isLatest, colors }: MessageBubbleProps) => {
   const isCustomer = message.sender_type === 'customer';
   const isAI = message.sender_type === 'ai';
+  
+  // Dynamic styles using all colors
+  const customerBubbleStyle = isCustomer ? {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
+    boxShadow: `0 2px 8px ${colors.primary}40`,
+    color: '#FFFFFF',
+  } : {};
+
+  const agentBubbleStyle = !isCustomer ? {
+    background: colors.secondary,
+    borderColor: `${colors.text}10`,
+    color: colors.text,
+  } : {};
+
+  const avatarStyle = !isCustomer ? {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, 20)} 100%)`,
+    boxShadow: `0 2px 6px ${colors.primary}50`,
+  } : {};
+
+  const timeStyle = {
+    color: isCustomer ? 'rgba(255,255,255,0.8)' : `${colors.text}80`,
+  };
   
   return (
     <div 
@@ -75,13 +129,18 @@ const MessageBubble = ({ message, isLatest }: MessageBubbleProps) => {
       style={isLatest ? { animation: 'fadeInUp 0.3s ease-out forwards' } : undefined}
     >
       {!isCustomer && (
-        <div className={styles.messageAvatar}>
+        <div className={styles.messageAvatar} style={avatarStyle}>
           {isAI ? '✦' : <UserIcon />}
         </div>
       )}
-      <div className={`${styles.messageBubble} ${isCustomer ? styles.bubbleCustomer : styles.bubbleAgent}`}>
-        <p className={styles.messageText}>{message.content}</p>
-        <span className={styles.messageTime}>
+      <div 
+        className={`${styles.messageBubble} ${isCustomer ? styles.bubbleCustomer : styles.bubbleAgent}`}
+        style={isCustomer ? customerBubbleStyle : agentBubbleStyle}
+      >
+        <p className={styles.messageText} style={{ color: isCustomer ? '#FFFFFF' : colors.text }}>
+          {message.content}
+        </p>
+        <span className={styles.messageTime} style={timeStyle}>
           {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
@@ -127,6 +186,9 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
           business_name: 'Support',
           welcome_message: 'Hi! How can we help you today?',
           primary_color: '#D97706',
+          secondary_color: '#92400E',
+          background_color: '#1A1915',
+          text_color: '#F5F5F4',
           position: 'bottom-right',
           offline_message: 'We\'re currently offline. Leave a message!',
           is_online: true,
@@ -173,18 +235,16 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, conversationId, config?.welcome_message]);
+  }, [conversationId, tenantId, config?.welcome_message]);
 
-  // Handle open/close
-  const handleOpen = async () => {
+  // Handle widget open
+  const handleOpen = () => {
     setIsOpen(true);
-    setIsClosing(false);
     setHasNewMessage(false);
-    if (!conversationId) {
-      await initConversation();
-    }
+    initConversation();
   };
 
+  // Handle widget close
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -193,50 +253,45 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     }, 200);
   };
 
-  // Send message
+  // Handle send message
   const handleSend = async () => {
-    if (!inputValue.trim() || !conversationId || isSending) {
-      return;
-    }
+    if (!inputValue.trim() || !conversationId || isSending) return;
 
-    const content = inputValue.trim();
+    const userMessage = inputValue.trim();
     setInputValue('');
     setIsSending(true);
-    setError(null);
 
-    // Optimistically add customer message
-    const tempCustomerMsg: Message = {
-      id: `temp-${Date.now()}`,
+    // Add user message immediately
+    const userMsg: Message = {
+      id: `user-${Date.now()}`,
       conversation_id: conversationId,
       sender_type: 'customer',
-      content,
+      content: userMessage,
       created_at: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, tempCustomerMsg]);
+    setMessages(prev => [...prev, userMsg]);
 
     try {
-      const response = await sendMessage(tenantId, conversationId, content);
+      const response = await sendMessage(tenantId, conversationId, userMessage);
       
-      // Replace temp message with real one and add AI response
-      setMessages(prev => {
-        const filtered = prev.filter(m => m.id !== tempCustomerMsg.id);
-        const newMessages = [...filtered, response.customer_message];
-        if (response.ai_response) {
-          newMessages.push(response.ai_response);
-        }
-        return newMessages;
-      });
+      // Add AI response
+      if (response.ai_response) {
+        setMessages(prev => [...prev, {
+          id: response.ai_response!.id,
+          conversation_id: conversationId,
+          sender_type: response.ai_response!.sender_type,
+          content: response.ai_response!.content,
+          created_at: response.ai_response!.created_at,
+        }]);
+      }
     } catch {
       setError('Failed to send message. Please try again.');
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== tempCustomerMsg.id));
-      setInputValue(content); // Restore input
     } finally {
       setIsSending(false);
     }
   };
 
-  // Handle enter key
+  // Handle key press
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -244,17 +299,17 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     }
   };
 
-  // Request human agent
+  // Handle request human
   const handleRequestHuman = async () => {
     if (!conversationId) return;
     
     try {
-      await requestHumanAgent(tenantId, conversationId, 'Customer requested human assistance');
+      await requestHumanAgent(tenantId, conversationId);
       setMessages(prev => [...prev, {
         id: `system-${Date.now()}`,
         conversation_id: conversationId,
-        sender_type: 'ai',
-        content: 'I\'ve notified our team. A human agent will be with you shortly. Please hold tight!',
+        sender_type: 'agent' as const,
+        content: 'A human agent will be with you shortly. Please hold tight!',
         created_at: new Date().toISOString(),
       }]);
     } catch {
@@ -264,13 +319,68 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
 
   if (!config) return null;
 
+  // Extract all colors from config (with fallbacks)
+  const colors = {
+    primary: config.primary_color || '#D97706',
+    secondary: config.secondary_color || '#92400E',
+    background: config.background_color || '#1A1915',
+    text: config.text_color || '#F5F5F4',
+  };
+
+  // Dynamic styles based on ALL colors
+  const bubbleStyle = {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
+    boxShadow: `0 4px 14px ${colors.primary}66, 0 2px 6px rgba(0, 0, 0, 0.2)`,
+  };
+
+  const headerStyle = {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
+  };
+
+  const chatWindowStyle = {
+    background: colors.background,
+  };
+
+  const messagesContainerStyle = {
+    background: colors.background,
+  };
+
+  const inputContainerStyle = {
+    background: adjustColor(colors.background, -10),
+    borderColor: `${colors.text}10`,
+  };
+
+  const inputStyle = {
+    background: colors.background,
+    color: colors.text,
+    borderColor: `${colors.text}20`,
+  };
+
+  const sendButtonStyle = {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
+    boxShadow: `0 2px 6px ${colors.primary}50`,
+  };
+
+  const footerStyle = {
+    background: adjustColor(colors.background, -10),
+    borderColor: `${colors.text}10`,
+    color: `${colors.text}80`,
+  };
+
+  const footerBrandStyle = {
+    color: colors.primary,
+  };
+
   return (
     <div className={styles.widgetContainer} data-position={config.position}>
       {/* Chat Window */}
       {isOpen && (
-        <div className={`${styles.chatWindow} ${isClosing ? styles.chatWindowClosing : ''}`}>
-          {/* Header */}
-          <div className={styles.header}>
+        <div 
+          className={`${styles.chatWindow} ${isClosing ? styles.chatWindowClosing : ''}`}
+          style={chatWindowStyle}
+        >
+          {/* Header - PRIMARY COLOR */}
+          <div className={styles.header} style={headerStyle}>
             <div className={styles.headerContent}>
               <div className={styles.headerLogo}>✦</div>
               <div className={styles.headerInfo}>
@@ -301,11 +411,14 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
             </div>
           </div>
 
-          {/* Messages */}
-          <div className={`${styles.messagesContainer} scrollbar-custom`}>
+          {/* Messages - BACKGROUND COLOR */}
+          <div 
+            className={`${styles.messagesContainer} scrollbar-custom`}
+            style={messagesContainerStyle}
+          >
             {isLoading ? (
-              <div className={styles.loadingContainer}>
-                <div className={styles.loadingSpinner} />
+              <div className={styles.loadingContainer} style={{ color: colors.text }}>
+                <div className={styles.loadingSpinner} style={{ borderTopColor: colors.primary }} />
                 <p>Starting conversation...</p>
               </div>
             ) : (
@@ -315,12 +428,23 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
                     key={msg.id} 
                     message={msg} 
                     isLatest={idx === messages.length - 1}
+                    colors={colors}
                   />
                 ))}
                 {isSending && (
                   <div className={`${styles.messageWrapper} ${styles.messageAgent}`}>
-                    <div className={styles.messageAvatar}>✦</div>
-                    <div className={`${styles.messageBubble} ${styles.bubbleAgent}`}>
+                    <div 
+                      className={styles.messageAvatar}
+                      style={{
+                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, 20)} 100%)`,
+                      }}
+                    >
+                      ✦
+                    </div>
+                    <div 
+                      className={`${styles.messageBubble} ${styles.bubbleAgent}`}
+                      style={{ background: colors.secondary, color: colors.text }}
+                    >
                       <TypingIndicator />
                     </div>
                   </div>
@@ -338,8 +462,8 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
             </div>
           )}
 
-          {/* Input */}
-          <div className={styles.inputContainer}>
+          {/* Input - BACKGROUND + TEXT COLORS */}
+          <div className={styles.inputContainer} style={inputContainerStyle}>
             <input
               ref={inputRef}
               type="text"
@@ -352,30 +476,34 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
               onKeyDown={handleKeyDown}
               disabled={isLoading || isSending}
               autoComplete="off"
+              style={inputStyle}
             />
+            {/* Send Button - PRIMARY COLOR */}
             <button
               className={styles.sendButton}
               onClick={handleSend}
               disabled={!inputValue.trim() || isLoading || isSending}
               type="button"
+              style={sendButtonStyle}
             >
               <SendIcon />
             </button>
           </div>
 
           {/* Footer */}
-          <div className={styles.footer}>
-            Powered by <span className={styles.footerBrand}>CybinAI</span>
+          <div className={styles.footer} style={footerStyle}>
+            Powered by <span className={styles.footerBrand} style={footerBrandStyle}>CybinAI</span>
           </div>
         </div>
       )}
 
-      {/* Floating Bubble */}
+      {/* Floating Bubble - PRIMARY COLOR */}
       <button
         className={`${styles.bubble} ${isOpen ? styles.bubbleHidden : ''} ${hasNewMessage ? styles.bubblePulse : ''}`}
         onClick={handleOpen}
         aria-label="Open chat"
         type="button"
+        style={bubbleStyle}
       >
         <ChatIcon />
         {hasNewMessage && <span className={styles.bubbleBadge} />}

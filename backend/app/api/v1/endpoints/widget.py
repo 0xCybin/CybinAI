@@ -2,6 +2,8 @@
 Widget Endpoints (Public)
 Handles the embeddable chat widget functionality.
 These endpoints are public but scoped to a specific tenant.
+
+UPDATED: Now reads from new nested settings structure set by Admin UI.
 """
 
 from fastapi import APIRouter, HTTPException, status, Path, Depends
@@ -53,29 +55,54 @@ async def get_widget_config(
     Get widget configuration for embedding.
     Returns branding, welcome message, etc.
     Public endpoint - no auth required.
+    
+    UPDATED: Now reads from nested settings structure:
+    - settings.widget.colors.primary_color
+    - settings.widget.messages.welcome_message
+    - settings.widget.features.show_branding
+    - settings.profile.logo_url
     """
     tenant = await resolve_tenant(tenant_id, service)
 
     # Get settings from tenant or use defaults
     settings = tenant.settings or {}
     widget_settings = settings.get("widget", {})
+    profile_settings = settings.get("profile", {})
+    
+    # === READ FROM NEW NESTED STRUCTURE ===
+    colors = widget_settings.get("colors", {})
+    messages = widget_settings.get("messages", {})
+    features = widget_settings.get("features", {})
+    
+    # Default colors (Industrial Warmth theme)
+    default_primary = "#D97706"  # Amber
+    default_welcome = f"Hi! Welcome to {tenant.name}. How can we help you today?"
+
+    # Default colors (Industrial Warmth theme)
+    default_secondary = "#92400E"
+    default_background = "#1A1915"
+    default_text = "#F5F5F4"
 
     return WidgetConfig(
         tenant_id=str(tenant.id),
         branding=WidgetBranding(
             business_name=tenant.name,
-            logo_url=widget_settings.get("logo_url"),
-            primary_color=widget_settings.get("primary_color", "#0066CC"),
-            welcome_message=widget_settings.get(
-                "welcome_message",
-                f"Hi! Welcome to {tenant.name}. How can we help you today?"
-            )
+            # Check profile first, then widget settings for logo
+            logo_url=profile_settings.get("logo_url") or colors.get("logo_url"),
+            # Read ALL colors from nested colors object
+            primary_color=colors.get("primary_color", default_primary),
+            secondary_color=colors.get("secondary_color", default_secondary),
+            background_color=colors.get("background_color", default_background),
+            text_color=colors.get("text_color", default_text),
+            # Read from nested messages object
+            welcome_message=messages.get("welcome_message", default_welcome)
         ),
         features=WidgetFeatures(
-            show_branding=widget_settings.get("show_branding", True),
-            collect_email=widget_settings.get("collect_email", True),
-            collect_phone=widget_settings.get("collect_phone", False),
-            show_powered_by=widget_settings.get("show_powered_by", True)
+            # Read from nested features object
+            show_branding=features.get("show_branding", True),
+            collect_email=features.get("collect_email", True),
+            collect_phone=features.get("collect_phone", False),
+            show_powered_by=features.get("show_powered_by", True)
         )
     )
 
@@ -104,10 +131,11 @@ async def start_conversation(
 
     await db.commit()
 
-    # Get welcome message
+    # Get welcome message from NEW nested structure
     settings = tenant.settings or {}
     widget_settings = settings.get("widget", {})
-    welcome_message = widget_settings.get(
+    messages = widget_settings.get("messages", {})
+    welcome_message = messages.get(
         "welcome_message",
         f"Hi! Welcome to {tenant.name}. How can we help you today?"
     )
@@ -266,12 +294,13 @@ async def request_human_agent(
         )
 
     # Mark as needing human attention
-    conversation.ai_handled = False
-    from app.models.models import ConversationStatus as ConvStatus, SenderType
+    from app.models.models import ConversationStatus as ConvStatus
     conversation.status = ConvStatus.PENDING
+    conversation.ai_handled = False
 
     # Add system message
-    await service.add_message(
+    from app.models.models import SenderType
+    system_msg = await service.add_message(
         conversation_id=conversation.id,
         sender_type=SenderType.SYSTEM,
         content="Customer requested to speak with a human agent."
@@ -280,7 +309,7 @@ async def request_human_agent(
     await db.commit()
 
     return {
-        "message": "A human agent will be with you shortly.",
+        "message": "Human agent requested",
         "conversation_id": conversation_id,
-        "escalated": True
+        "status": "pending"
     }

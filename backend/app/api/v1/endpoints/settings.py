@@ -6,15 +6,19 @@ Handles tenant configuration including:
 - Widget customization (colors, messages, features)
 - AI configuration (response style, escalation)
 - Notification preferences
+
+FIXED: Added flag_modified() to ensure JSON changes are persisted to database.
 """
 
 import logging
 from typing import Annotated, Optional
 from datetime import datetime, timezone
+from copy import deepcopy
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified  # <-- THE FIX
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_admin, AdminUser, DbSession
@@ -231,7 +235,9 @@ async def update_business_profile(
     Requires admin or owner role.
     """
     tenant = await get_tenant(db, current_user.tenant_id)
-    settings = tenant.settings or {}
+    
+    # IMPORTANT: Create a NEW dict to ensure SQLAlchemy detects the change
+    settings = deepcopy(tenant.settings) if tenant.settings else {}
     profile_data = settings.get("profile", {})
     
     # Update tenant name directly if provided
@@ -254,6 +260,9 @@ async def update_business_profile(
     settings["profile"] = profile_data
     tenant.settings = settings
     tenant.updated_at = datetime.now(timezone.utc)
+    
+    # CRITICAL: Tell SQLAlchemy the JSON column was modified
+    flag_modified(tenant, "settings")
     
     await db.commit()
     await db.refresh(tenant)
@@ -321,7 +330,9 @@ async def update_widget_settings(
     Supports partial updates for colors, messages, features, and position.
     """
     tenant = await get_tenant(db, current_user.tenant_id)
-    settings = tenant.settings or {}
+    
+    # IMPORTANT: Create a NEW dict to ensure SQLAlchemy detects the change
+    settings = deepcopy(tenant.settings) if tenant.settings else {}
     widget_data = settings.get("widget", {})
     defaults = WidgetSettingsResponse()
     
@@ -357,6 +368,9 @@ async def update_widget_settings(
     settings["widget"] = widget_data
     tenant.settings = settings
     tenant.updated_at = datetime.now(timezone.utc)
+    
+    # CRITICAL: Tell SQLAlchemy the JSON column was modified
+    flag_modified(tenant, "settings")
     
     await db.commit()
     await db.refresh(tenant)
@@ -416,7 +430,9 @@ async def update_ai_settings(
     Controls response style, escalation thresholds, and auto-resolve.
     """
     tenant = await get_tenant(db, current_user.tenant_id)
-    settings = tenant.settings or {}
+    
+    # IMPORTANT: Create a NEW dict to ensure SQLAlchemy detects the change
+    settings = deepcopy(tenant.settings) if tenant.settings else {}
     ai_data = settings.get("ai", {})
     
     # Update only provided fields
@@ -431,6 +447,9 @@ async def update_ai_settings(
     settings["ai"] = ai_data
     tenant.settings = settings
     tenant.updated_at = datetime.now(timezone.utc)
+    
+    # CRITICAL: Tell SQLAlchemy the JSON column was modified
+    flag_modified(tenant, "settings")
     
     await db.commit()
     await db.refresh(tenant)
@@ -493,7 +512,9 @@ async def update_notification_settings(
     Controls email alerts and Slack integration.
     """
     tenant = await get_tenant(db, current_user.tenant_id)
-    settings = tenant.settings or {}
+    
+    # IMPORTANT: Create a NEW dict to ensure SQLAlchemy detects the change
+    settings = deepcopy(tenant.settings) if tenant.settings else {}
     notif_data = settings.get("notifications", {})
     
     # Update only provided fields
@@ -503,6 +524,9 @@ async def update_notification_settings(
     settings["notifications"] = notif_data
     tenant.settings = settings
     tenant.updated_at = datetime.now(timezone.utc)
+    
+    # CRITICAL: Tell SQLAlchemy the JSON column was modified
+    flag_modified(tenant, "settings")
     
     await db.commit()
     await db.refresh(tenant)

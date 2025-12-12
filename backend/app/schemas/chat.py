@@ -30,9 +30,15 @@ class ConversationStatus(str, Enum):
 # ============================================================================
 
 class WidgetBranding(BaseModel):
+    """Widget branding configuration with all colors."""
     business_name: str
     logo_url: Optional[str] = None
-    primary_color: str = "#0066CC"
+    # All four colors from admin settings
+    primary_color: str = "#D97706"
+    secondary_color: str = "#92400E"
+    background_color: str = "#1A1915"
+    text_color: str = "#F5F5F4"
+    # Messages
     welcome_message: str = "Hi! How can we help you today?"
 
 
