@@ -123,24 +123,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             isActive={isActive('/admin/customers')}
           />
           <NavItem
+            href="/admin/integrations"
+            icon={<Link2 size={20} />}
+            label="Integrations"
+            isActive={isActive('/admin/integrations')}
+          />
+          <NavItem
             href="/admin/settings"
             icon={<Settings size={20} />}
             label="Settings"
             isActive={isActive('/admin/settings')}
-          />
-
-          {/* Divider */}
-          <div className="my-4 border-t border-neutral-800" />
-
-          {/* Coming Soon Section */}
-          <p className="px-3 py-2 text-[11px] font-semibold text-neutral-600 uppercase tracking-wider">
-            Coming Soon
-          </p>
-          <NavItem
-            href="#"
-            icon={<Link2 size={20} />}
-            label="Integrations"
-            disabled
           />
         </nav>
 
