@@ -117,6 +117,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             Admin
           </p>
           <NavItem
+            href="/admin/customers"
+            icon={<Users size={20} />}
+            label="Customers"
+            isActive={isActive('/admin/customers')}
+          />
+          <NavItem
             href="/admin/settings"
             icon={<Settings size={20} />}
             label="Settings"
@@ -130,12 +136,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <p className="px-3 py-2 text-[11px] font-semibold text-neutral-600 uppercase tracking-wider">
             Coming Soon
           </p>
-          <NavItem
-            href="#"
-            icon={<Users size={20} />}
-            label="Customers"
-            disabled
-          />
           <NavItem
             href="#"
             icon={<Link2 size={20} />}

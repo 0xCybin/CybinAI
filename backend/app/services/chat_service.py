@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
-from sqlalchemy import select
+from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -158,6 +158,7 @@ class ChatService:
     ) -> tuple[Message, Optional[Message]]:
         """
         Process a customer message and generate AI response.
+        Now respects tenant AI settings!
         Returns (customer_message, ai_response).
         """
         # Save customer message
@@ -167,17 +168,84 @@ class ChatService:
             content=content
         )
 
+        # === LOAD AI SETTINGS FROM TENANT ===
+        settings = tenant.settings or {}
+        ai_settings = settings.get("ai", {})
+        
+        # Check if AI is enabled
+        ai_enabled = ai_settings.get("enabled", True)
+        
+        if not ai_enabled:
+            # AI disabled - route directly to human
+            await self._handle_escalation(
+                conversation,
+                reason="AI responses disabled",
+                priority="normal"
+            )
+            # Return system message instead of AI response
+            system_msg = await self.add_message(
+                conversation_id=conversation.id,
+                sender_type=SenderType.SYSTEM,
+                content="A team member will be with you shortly."
+            )
+            return customer_msg, system_msg
+
+        # Get AI configuration from settings
+        response_style = ai_settings.get("response_style", "professional")
+        custom_instructions = ai_settings.get("custom_instructions")
+        escalation_threshold = ai_settings.get("escalation_threshold", 0.7)
+        max_ai_turns = ai_settings.get("max_ai_turns", 5)
+
+        # Count AI turns in this conversation
+        ai_turn_count = await self._count_ai_turns(conversation.id)
+        
+        # Check if we've exceeded max AI turns
+        if ai_turn_count >= max_ai_turns:
+            await self._handle_escalation(
+                conversation,
+                reason=f"Maximum AI turns ({max_ai_turns}) reached",
+                priority="normal"
+            )
+            suggest_msg = await self.add_message(
+                conversation_id=conversation.id,
+                sender_type=SenderType.AI,
+                content="I think it would be best to connect you with one of our team members who can better assist you. Someone will be with you shortly!"
+            )
+            return customer_msg, suggest_msg
+
         # Get conversation history for context
         conversation_history = await self._get_conversation_history(conversation.id)
 
         # Generate AI response
+        ai_msg = None
         try:
-            # Create AI service WITH database session for Jobber integration
+            # Build additional context from response style settings
+            style_instructions = {
+                "professional": "Maintain a professional, business-like tone.",
+                "friendly": "Be warm, friendly, and approachable. Use casual language.",
+                "casual": "Be relaxed and conversational. It's okay to be informal.",
+                "formal": "Use formal, polished language. Be very proper and respectful.",
+            }
+            
+            additional_context_parts = []
+            
+            # Add response style instruction
+            style_instruction = style_instructions.get(response_style, style_instructions["professional"])
+            additional_context_parts.append(f"Response Style: {style_instruction}")
+            
+            # Add custom instructions if provided
+            if custom_instructions:
+                additional_context_parts.append(f"Additional Instructions: {custom_instructions}")
+            
+            additional_context = "\n".join(additional_context_parts) if additional_context_parts else None
+
+            # Create AI service with tenant settings
             ai_service = AIService(
                 tenant_id=tenant.id,
                 business_name=tenant.name,
-                business_type="hvac",  # TODO: Make this configurable per tenant
-                db=self.db,  # Pass DB session for Jobber integration
+                business_type=ai_settings.get("business_type", "general"),
+                additional_context=additional_context,
+                db=self.db,
             )
 
             ai_response = await ai_service.generate_response(
@@ -191,6 +259,9 @@ class ChatService:
                 "estimated_cost": ai_response.estimated_cost,
                 "provider": ai_response.provider,
                 "model": ai_response.model,
+                "response_style": response_style,
+                "ai_turn": ai_turn_count + 1,
+                "max_ai_turns": max_ai_turns,
                 "tool_calls": [
                     {"name": tc.name, "arguments": tc.arguments}
                     for tc in ai_response.tool_calls
@@ -234,7 +305,7 @@ class ChatService:
             logger.info(
                 f"AI response generated: tokens={ai_response.tokens_used}, "
                 f"cost=${ai_response.estimated_cost:.6f}, provider={ai_response.provider}, "
-                f"tools_called={len(ai_response.tool_calls)}"
+                f"style={response_style}, turn={ai_turn_count + 1}/{max_ai_turns}"
             )
 
         except Exception as e:
@@ -252,6 +323,15 @@ class ChatService:
             )
 
         return customer_msg, ai_msg
+
+    async def process_customer_message(
+        self,
+        conversation: Conversation,
+        tenant: Tenant,
+        content: str
+    ) -> tuple[Message, Optional[Message]]:
+        """Alias for send_customer_message for backwards compatibility."""
+        return await self.send_customer_message(conversation, tenant, content)
 
     async def _get_conversation_history(
         self,
@@ -274,6 +354,19 @@ class ChatService:
             history.append({"role": role, "content": msg.content})
 
         return history
+
+    async def _count_ai_turns(self, conversation_id: uuid.UUID) -> int:
+        """Count number of AI messages in a conversation."""
+        result = await self.db.execute(
+            select(func.count(Message.id))
+            .where(
+                and_(
+                    Message.conversation_id == conversation_id,
+                    Message.sender_type == SenderType.AI
+                )
+            )
+        )
+        return result.scalar() or 0
 
     async def _handle_escalation(
         self,
