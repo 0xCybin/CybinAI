@@ -25,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CybinAI - AI-Powered Customer Service",
+  title: "MykoDesk - AI-Powered Customer Service",
   description: "Affordable, AI-first customer service for small businesses",
 };
 
