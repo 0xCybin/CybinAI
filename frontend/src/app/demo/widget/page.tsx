@@ -74,7 +74,7 @@ export default function WidgetDemoPage() {
       </main>
 
       <footer style={pageStyles.footer}>
-        <p>© 2024 ACME HVAC (Demo) • Powered by CybinAI</p>
+        <p>© 2024 ACME HVAC (Demo) • Powered by MykoDesk</p>
       </footer>
 
       {/* The Chat Widget */}

@@ -390,7 +390,7 @@ function BusinessProfileTab({
               disabled
               className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-neutral-500 cursor-not-allowed"
             />
-            <span className="text-neutral-500 text-sm">.cybinai.com</span>
+            <span className="text-neutral-500 text-sm">.MykoDesk.com</span>
           </div>
           <p className="text-xs text-neutral-600 mt-1">
             Contact support to change your subdomain
@@ -745,7 +745,7 @@ function WidgetSettingsTab({
                 onChange={(v) => setFeatures({ ...features, require_email: v })}
               />
               <ToggleSwitch
-                label="Show 'Powered by CybinAI'"
+                label="Show 'Powered by MykoDesk'"
                 checked={features.show_powered_by}
                 onChange={(v) => setFeatures({ ...features, show_powered_by: v })}
               />

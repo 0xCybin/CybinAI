@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // CybinAI brand colors
+        // MykoDesk brand colors
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',

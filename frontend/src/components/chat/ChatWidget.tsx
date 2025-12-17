@@ -492,7 +492,7 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
 
           {/* Footer */}
           <div className={styles.footer} style={footerStyle}>
-            Powered by <span className={styles.footerBrand} style={footerBrandStyle}>CybinAI</span>
+            Powered by <span className={styles.footerBrand} style={footerBrandStyle}>MykoDesk</span>
           </div>
         </div>
       )}

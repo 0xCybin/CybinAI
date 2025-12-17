@@ -1,4 +1,4 @@
-# CybinAI - AI-Powered Customer Service Platform
+# MykoDesk - AI-Powered Customer Service Platform
 
 An affordable, AI-first customer service platform for small businesses. Handles 60-80% of customer inquiries automatically with seamless human escalation.
 
@@ -65,7 +65,7 @@ Frontend will be available at: http://localhost:3000
 ## 📁 Project Structure
 
 ```
-CybinAI/
+MykoDesk/
 ├── backend/
 │   ├── app/
 │   │   ├── api/v1/endpoints/   # API route handlers
@@ -97,7 +97,7 @@ Copy `.env.example` to `.env` and configure:
 
 ```env
 # Database (default works with docker-compose)
-DATABASE_URL=postgresql://cybinai:cybinai_local_dev@localhost:5432/cybinai
+DATABASE_URL=postgresql://mykoDesk:mykoDesk_local_dev@localhost:5432/mykoDesk
 
 # AI Provider (get a DeepSeek API key)
 DEEPSEEK_API_KEY=your-key-here

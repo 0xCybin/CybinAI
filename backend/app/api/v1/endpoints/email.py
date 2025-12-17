@@ -163,8 +163,8 @@ async def _resolve_tenant_from_email(
                 return tenant
         
         # Check for subdomain@ format
-        # e.g., acmehvac@mail.cybinai.com
-        if "@mail.cybinai.com" in addr_lower or "@" in addr_lower:
+        # e.g., acmehvac@mail.MykoDesk.com
+        if "@mail.MykoDesk.com" in addr_lower or "@" in addr_lower:
             local_part = addr_lower.split("@")[0]
             # Remove reply+ prefix if present
             if local_part.startswith("reply+"):
@@ -419,7 +419,7 @@ async def get_email_settings(
     # Build inbound address
     inbound_address = None
     if tenant.subdomain:
-        inbound_address = f"{tenant.subdomain}@mail.cybinai.com"
+        inbound_address = f"{tenant.subdomain}@mail.mykoDesk.com"
     
     return EmailSettingsResponse(
         email_enabled=email_settings.get("enabled", False),

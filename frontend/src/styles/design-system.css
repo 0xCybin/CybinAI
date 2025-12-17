@@ -1,5 +1,5 @@
 /*
- * CybinAI Design System
+ * MykoDesk Design System
  * Identity: Industrial Warmth
  * "A trusted tool in your shop — not a Silicon Valley product"
  * 
@@ -11,62 +11,62 @@
    ======================================== */
 :root {
   /* === Primary Palette === */
-  --cybin-amber-50: #FFFBEB;
-  --cybin-amber-100: #FEF3C7;
-  --cybin-amber-200: #FDE68A;
-  --cybin-amber-300: #FCD34D;
-  --cybin-amber-400: #FBBF24;
-  --cybin-amber-500: #F59E0B;
-  --cybin-amber-600: #D97706;  /* PRIMARY */
-  --cybin-amber-700: #B45309;
-  --cybin-amber-800: #92400E;
-  --cybin-amber-900: #78350F;
+  --mykodesk-amber-50: #FFFBEB;
+  --mykodesk-amber-100: #FEF3C7;
+  --mykodesk-amber-200: #FDE68A;
+  --mykodesk-amber-300: #FCD34D;
+  --mykodesk-amber-400: #FBBF24;
+  --mykodesk-amber-500: #F59E0B;
+  --mykodesk-amber-600: #D97706;  /* PRIMARY */
+  --mykodesk-amber-700: #B45309;
+  --mykodesk-amber-800: #92400E;
+  --mykodesk-amber-900: #78350F;
 
   /* === Neutrals — Warm Slate === */
-  --cybin-slate-50: #F8FAFC;
-  --cybin-slate-100: #F1F5F9;
-  --cybin-slate-200: #E2E8F0;
-  --cybin-slate-300: #CBD5E1;
-  --cybin-slate-400: #94A3B8;
-  --cybin-slate-500: #64748B;
-  --cybin-slate-600: #475569;
-  --cybin-slate-700: #334155;
-  --cybin-slate-800: #1E293B;
-  --cybin-slate-900: #0F172A;
+  --mykodesk-slate-50: #F8FAFC;
+  --mykodesk-slate-100: #F1F5F9;
+  --mykodesk-slate-200: #E2E8F0;
+  --mykodesk-slate-300: #CBD5E1;
+  --mykodesk-slate-400: #94A3B8;
+  --mykodesk-slate-500: #64748B;
+  --mykodesk-slate-600: #475569;
+  --mykodesk-slate-700: #334155;
+  --mykodesk-slate-800: #1E293B;
+  --mykodesk-slate-900: #0F172A;
 
   /* === Semantic Colors === */
-  --cybin-success-light: #ECFDF5;
-  --cybin-success: #059669;
-  --cybin-success-dark: #047857;
+  --mykodesk-success-light: #ECFDF5;
+  --mykodesk-success: #059669;
+  --mykodesk-success-dark: #047857;
   
-  --cybin-error-light: #FEF2F2;
-  --cybin-error: #DC2626;
-  --cybin-error-dark: #B91C1C;
+  --mykodesk-error-light: #FEF2F2;
+  --mykodesk-error: #DC2626;
+  --mykodesk-error-dark: #B91C1C;
   
-  --cybin-warning-light: #FFFBEB;
-  --cybin-warning: #D97706;
-  --cybin-warning-dark: #B45309;
+  --mykodesk-warning-light: #FFFBEB;
+  --mykodesk-warning: #D97706;
+  --mykodesk-warning-dark: #B45309;
   
-  --cybin-info-light: #EFF6FF;
-  --cybin-info: #2563EB;
-  --cybin-info-dark: #1D4ED8;
+  --mykodesk-info-light: #EFF6FF;
+  --mykodesk-info: #2563EB;
+  --mykodesk-info-dark: #1D4ED8;
 
   /* === Applied Theme (Light) === */
-  --color-primary: var(--cybin-amber-600);
-  --color-primary-hover: var(--cybin-amber-700);
-  --color-primary-light: var(--cybin-amber-50);
+  --color-primary: var(--mykodesk-amber-600);
+  --color-primary-hover: var(--mykodesk-amber-700);
+  --color-primary-light: var(--mykodesk-amber-50);
   
   --color-background: #FAF9F6;  /* Warm cream */
   --color-surface: #FFFFFF;
   --color-surface-elevated: #FFFFFF;
-  --color-surface-muted: var(--cybin-slate-50);
+  --color-surface-muted: var(--mykodesk-slate-50);
   
-  --color-border: var(--cybin-slate-200);
-  --color-border-light: var(--cybin-slate-100);
+  --color-border: var(--mykodesk-slate-200);
+  --color-border-light: var(--mykodesk-slate-100);
   
-  --color-text-primary: var(--cybin-slate-700);
-  --color-text-secondary: var(--cybin-slate-500);
-  --color-text-muted: var(--cybin-slate-400);
+  --color-text-primary: var(--mykodesk-slate-700);
+  --color-text-secondary: var(--mykodesk-slate-500);
+  --color-text-muted: var(--mykodesk-slate-400);
   --color-text-inverse: #FFFFFF;
 
   /* === Typography === */
@@ -140,22 +140,22 @@
    DARK THEME (for Agent Dashboard)
    ======================================== */
 [data-theme="dark"] {
-  --color-primary: var(--cybin-amber-500);
-  --color-primary-hover: var(--cybin-amber-400);
+  --color-primary: var(--mykodesk-amber-500);
+  --color-primary-hover: var(--mykodesk-amber-400);
   --color-primary-light: rgba(217, 119, 6, 0.15);
   
-  --color-background: var(--cybin-slate-900);
-  --color-surface: var(--cybin-slate-800);
-  --color-surface-elevated: var(--cybin-slate-700);
-  --color-surface-muted: var(--cybin-slate-800);
+  --color-background: var(--mykodesk-slate-900);
+  --color-surface: var(--mykodesk-slate-800);
+  --color-surface-elevated: var(--mykodesk-slate-700);
+  --color-surface-muted: var(--mykodesk-slate-800);
   
-  --color-border: var(--cybin-slate-700);
-  --color-border-light: var(--cybin-slate-800);
+  --color-border: var(--mykodesk-slate-700);
+  --color-border-light: var(--mykodesk-slate-800);
   
-  --color-text-primary: var(--cybin-slate-100);
-  --color-text-secondary: var(--cybin-slate-300);
-  --color-text-muted: var(--cybin-slate-500);
-  --color-text-inverse: var(--cybin-slate-900);
+  --color-text-primary: var(--mykodesk-slate-100);
+  --color-text-secondary: var(--mykodesk-slate-300);
+  --color-text-muted: var(--mykodesk-slate-500);
+  --color-text-inverse: var(--mykodesk-slate-900);
 
   --shadow-widget: 0 20px 40px -8px rgba(0, 0, 0, 0.4), 0 10px 20px -5px rgba(0, 0, 0, 0.3);
 }
@@ -223,7 +223,7 @@ code, pre {
 /* Custom scrollbar for chat */
 .scrollbar-custom {
   scrollbar-width: thin;
-  scrollbar-color: var(--cybin-slate-300) transparent;
+  scrollbar-color: var(--mykodesk-slate-300) transparent;
 }
 .scrollbar-custom::-webkit-scrollbar {
   width: 6px;
@@ -232,11 +232,11 @@ code, pre {
   background: transparent;
 }
 .scrollbar-custom::-webkit-scrollbar-thumb {
-  background-color: var(--cybin-slate-300);
+  background-color: var(--mykodesk-slate-300);
   border-radius: var(--radius-full);
 }
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-  background-color: var(--cybin-slate-400);
+  background-color: var(--mykodesk-slate-400);
 }
 
 /* ========================================
