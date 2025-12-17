@@ -15,7 +15,8 @@ from app.api.v1.endpoints import (
     integrations,
     email,
     analytics,
-    settings,  # NEW - Admin Settings
+    settings,
+    users,  # NEW - User/Agent Management
 )
 
 api_router = APIRouter()
@@ -32,6 +33,12 @@ api_router.include_router(
     tenants.router,
     prefix="/tenants",
     tags=["Tenants"]
+)
+
+# User/Agent management (NEW)
+api_router.include_router(
+    users.router,
+    tags=["Users"]
 )
 
 # Conversation/ticket management
@@ -82,7 +89,7 @@ api_router.include_router(
     tags=["Analytics"]
 )
 
-# Admin settings endpoints (NEW)
+# Admin settings endpoints
 api_router.include_router(
     settings.router,
     prefix="/settings",

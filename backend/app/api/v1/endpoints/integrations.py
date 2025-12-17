@@ -222,15 +222,15 @@ async def test_jobber_connection(
     try:
         service = await get_jobber_service(db, current_user.tenant_id)
         
-        if not await service.is_connected():
+        # get_jobber_service returns None if not connected
+        if service is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Jobber is not connected",
             )
         
-        from app.services.jobber import get_jobber_client
-        client = await get_jobber_client(db, current_user.tenant_id)
-        account_info = await client.test_connection()
+        # Use the client's test_connection method directly
+        account_info = await service.client.test_connection()
         
         return {
             "status": "connected",
