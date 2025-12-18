@@ -234,7 +234,6 @@ class AIService:
     
     def _process_response(self, llm_response: LLMResponse) -> AIResponse:
         """Process the LLM response and check for escalation."""
-        
         should_escalate = False
         escalation_reason = None
         escalation_priority = None
@@ -521,16 +520,67 @@ class AIService:
         )
     
     async def _execute_knowledge_base_search(self, args: dict) -> ToolExecutionResult:
-        """Execute a knowledge base search."""
+        """Execute a knowledge base search using KnowledgeBaseService."""
         query = args.get("query", "")
         
-        # TODO: Implement vector search when we add embeddings
-        # For now, return a placeholder
-        return ToolExecutionResult(
-            success=True,
-            message=f"[Knowledge base search for: {query}]",
-            data={"query": query, "results": []}
-        )
+        if not query:
+            return ToolExecutionResult(
+                success=False,
+                message="No search query provided",
+                error="Empty query"
+            )
+        
+        if not self.db:
+            logger.warning("No database session available for KB search")
+            return ToolExecutionResult(
+                success=False,
+                message="Knowledge base search unavailable",
+                error="No database session"
+            )
+        
+        try:
+            from app.services.kb_service import KnowledgeBaseService
+            
+            kb_service = KnowledgeBaseService(self.db)
+            results = await kb_service.search(self.tenant_id, query, limit=5)
+            
+            if not results:
+                logger.info(f"KB search for '{query}' returned no results for tenant {self.tenant_id}")
+                return ToolExecutionResult(
+                    success=True,
+                    message=f"[No knowledge base articles found for: {query}]",
+                    data={"query": query, "results": []}
+                )
+            
+            # Format results for the AI to use
+            formatted_results = []
+            context_text = []
+            
+            for r in results:
+                formatted_results.append({
+                    "title": r.title,
+                    "content": r.content,
+                    "category": r.category,
+                    "score": r.score
+                })
+                # Build context string for AI
+                context_text.append(f"**{r.title}**: {r.content}")
+            
+            logger.info(f"KB search for '{query}' found {len(results)} results for tenant {self.tenant_id}")
+            
+            return ToolExecutionResult(
+                success=True,
+                message="\n\n".join(context_text),
+                data={"query": query, "results": formatted_results}
+            )
+            
+        except Exception as e:
+            logger.error(f"KB search error for tenant {self.tenant_id}: {e}")
+            return ToolExecutionResult(
+                success=False,
+                message="[Knowledge base search failed]",
+                error=str(e)
+            )
 
 
 async def get_ai_service(

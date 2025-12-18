@@ -1,5 +1,5 @@
 """
-CybinAI - AI-Powered Customer Service Platform
+MykoDesk - AI-Powered Customer Service Platform
 Main FastAPI Application Entry Point
 """
 
@@ -19,20 +19,20 @@ async def lifespan(app: FastAPI):
     Startup and shutdown logic goes here.
     """
     # Startup
-    print(f"🚀 Starting CybinAI API in {settings.ENVIRONMENT} mode")
+    print(f"🚀 Starting MykoDesk API in {settings.ENVIRONMENT} mode")
     print(f"🔌 WebSocket server available at /ws/socket.io")
     # TODO: Initialize database connection pool
     # TODO: Initialize Redis connection
     # TODO: Initialize AI service
     yield
     # Shutdown
-    print("👋 Shutting down CybinAI API")
+    print("👋 Shutting down MykoDesk API")
     # TODO: Close database connections
     # TODO: Close Redis connections
 
 
 app = FastAPI(
-    title="CybinAI",
+    title="MykoDesk",
     description="AI-Powered Customer Service Platform for Small Businesses",
     version="0.1.0",
     lifespan=lifespan,
@@ -72,7 +72,7 @@ async def health_check():
 async def root():
     """Root endpoint."""
     return {
-        "name": "CybinAI",
+        "name": "MykoDesk",
         "message": "AI-Powered Customer Service Platform",
         "docs": "/docs" if settings.DEBUG else "Documentation disabled in production",
         "websocket": "/ws/socket.io",
