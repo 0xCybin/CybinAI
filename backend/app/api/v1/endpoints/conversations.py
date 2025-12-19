@@ -12,6 +12,7 @@ from sqlalchemy import select, func, desc, and_
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import DbSession, AuthenticatedUser
+from app.core.websocket import emit_new_message  # NEW: Import WebSocket emitter
 from app.models.models import (
     Conversation,
     Message,
@@ -465,6 +466,7 @@ async def send_message(
     """
     Send a message as an agent in a conversation.
     Automatically assigns the conversation to the current agent if not already assigned.
+    Emits WebSocket event for real-time updates to widget and other agents.
     """
     tenant_id = current.tenant.id
     agent_id = current.user.id
@@ -509,6 +511,25 @@ async def send_message(
     
     await db.commit()
     await db.refresh(message)
+    
+    # =========================================================================
+    # NEW: Emit WebSocket event for real-time updates
+    # This broadcasts to both:
+    # - tenant room (for agent dashboard)
+    # - conversation room (for chat widget)
+    # =========================================================================
+    await emit_new_message(
+        tenant_id=tenant_id,
+        conversation_id=conversation_id,
+        message_data={
+            "id": str(message.id),
+            "conversation_id": str(message.conversation_id),
+            "sender_type": message.sender_type.value if hasattr(message.sender_type, 'value') else message.sender_type,
+            "sender_id": str(message.sender_id) if message.sender_id else None,
+            "content": message.content,
+            "created_at": message.created_at.isoformat(),
+        }
+    )
     
     return MessageResponse(
         id=message.id,
@@ -565,8 +586,8 @@ async def get_ai_suggestions(
     """
     return {
         "suggestions": [
-            "Thank you for reaching out! Let me help you with that.",
-            "I understand your concern. Here's what we can do...",
-            "I'll connect you with a specialist who can assist further.",
+            "I understand your concern. Let me look into this for you.",
+            "Thank you for your patience. I'm checking on this now.",
+            "Is there anything else I can help you with today?",
         ]
     }

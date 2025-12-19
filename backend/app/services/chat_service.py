@@ -158,25 +158,40 @@ class ChatService:
     ) -> tuple[Message, Optional[Message]]:
         """
         Process a customer message and generate AI response.
-        Now respects tenant AI settings!
-        Returns (customer_message, ai_response).
+        
+        IMPORTANT: Respects both:
+        - tenant AI settings (ai.enabled)
+        - conversation.ai_handled flag (human takeover)
+        
+        Returns (customer_message, ai_response or None).
         """
-        # Save customer message
+        # Save customer message first
         customer_msg = await self.add_message(
             conversation_id=conversation.id,
             sender_type=SenderType.CUSTOMER,
             content=content
         )
 
-        # === LOAD AI SETTINGS FROM TENANT ===
+        # =====================================================================
+        # CHECK 1: Has a human agent taken over this conversation?
+        # If ai_handled is False, a human is handling it - don't generate AI response
+        # =====================================================================
+        if not conversation.ai_handled:
+            logger.info(
+                f"Conversation {conversation.id} is handled by human agent - "
+                "skipping AI response"
+            )
+            return customer_msg, None
+
+        # =====================================================================
+        # CHECK 2: Is AI enabled in tenant settings?
+        # =====================================================================
         settings = tenant.settings or {}
         ai_settings = settings.get("ai", {})
-        
-        # Check if AI is enabled
         ai_enabled = ai_settings.get("enabled", True)
         
         if not ai_enabled:
-            # AI disabled - route directly to human
+            # AI disabled globally - route to human
             await self._handle_escalation(
                 conversation,
                 reason="AI responses disabled",
@@ -190,102 +205,99 @@ class ChatService:
             )
             return customer_msg, system_msg
 
-        # Get AI configuration from settings
-        response_style = ai_settings.get("response_style", "professional")
-        custom_instructions = ai_settings.get("custom_instructions")
-        escalation_threshold = ai_settings.get("escalation_threshold", 0.7)
-        max_ai_turns = ai_settings.get("max_ai_turns", 5)
-
-        # Count AI turns in this conversation
+        # =====================================================================
+        # CHECK 3: Have we exceeded max AI turns?
+        # =====================================================================
+        max_ai_turns = ai_settings.get("max_ai_turns", 10)
         ai_turn_count = await self._count_ai_turns(conversation.id)
         
-        # Check if we've exceeded max AI turns
         if ai_turn_count >= max_ai_turns:
+            # Exceeded max turns - escalate
             await self._handle_escalation(
                 conversation,
-                reason=f"Maximum AI turns ({max_ai_turns}) reached",
+                reason=f"Exceeded maximum AI turns ({max_ai_turns})",
                 priority="normal"
             )
-            suggest_msg = await self.add_message(
+            system_msg = await self.add_message(
                 conversation_id=conversation.id,
-                sender_type=SenderType.AI,
-                content="I think it would be best to connect you with one of our team members who can better assist you. Someone will be with you shortly!"
+                sender_type=SenderType.SYSTEM,
+                content="Let me connect you with a team member who can better assist you."
             )
-            return customer_msg, suggest_msg
+            return customer_msg, system_msg
 
-        # Get conversation history for context
-        conversation_history = await self._get_conversation_history(conversation.id)
+        # =====================================================================
+        # AI IS ENABLED AND HANDLING - Generate response
+        # =====================================================================
+        response_style = ai_settings.get("response_style", "professional")
+        custom_instructions = ai_settings.get("custom_instructions", "")
+        
+        # Build additional context with response style
+        style_instructions = {
+            "professional": "Be professional, helpful, and concise. Use clear language.",
+            "friendly": "Be warm, friendly, and approachable. Use casual language.",
+            "casual": "Be relaxed and conversational. It's okay to be informal.",
+            "formal": "Use formal, polished language. Be very proper and respectful.",
+        }
+        
+        additional_context_parts = []
+        
+        # Add response style instruction
+        style_instruction = style_instructions.get(response_style, style_instructions["professional"])
+        additional_context_parts.append(f"Response Style: {style_instruction}")
+        
+        # Add custom instructions if provided
+        if custom_instructions:
+            additional_context_parts.append(f"Additional Instructions: {custom_instructions}")
+        
+        additional_context = "\n".join(additional_context_parts) if additional_context_parts else None
 
-        # Generate AI response
+        # Create AI service with tenant settings
+        ai_service = AIService(
+            tenant_id=tenant.id,
+            business_name=tenant.name,
+            business_type=settings.get("profile", {}).get("business_type", "service business"),
+            additional_context=additional_context,
+            db=self.db,
+        )
+
+        # Get conversation history
+        history = await self._get_conversation_history(conversation.id)
+
         ai_msg = None
         try:
-            # Build additional context from response style settings
-            style_instructions = {
-                "professional": "Maintain a professional, business-like tone.",
-                "friendly": "Be warm, friendly, and approachable. Use casual language.",
-                "casual": "Be relaxed and conversational. It's okay to be informal.",
-                "formal": "Use formal, polished language. Be very proper and respectful.",
-            }
-            
-            additional_context_parts = []
-            
-            # Add response style instruction
-            style_instruction = style_instructions.get(response_style, style_instructions["professional"])
-            additional_context_parts.append(f"Response Style: {style_instruction}")
-            
-            # Add custom instructions if provided
-            if custom_instructions:
-                additional_context_parts.append(f"Additional Instructions: {custom_instructions}")
-            
-            additional_context = "\n".join(additional_context_parts) if additional_context_parts else None
-
-            # Create AI service with tenant settings
-            ai_service = AIService(
-                tenant_id=tenant.id,
-                business_name=tenant.name,
-                business_type=ai_settings.get("business_type", "general"),
-                additional_context=additional_context,
-                db=self.db,
-            )
-
+            # Generate AI response
             ai_response = await ai_service.generate_response(
-                conversation_history=conversation_history,
+                conversation_history=history,
                 customer_message=content,
             )
 
-            # Store AI metadata for analytics
-            ai_metadata = {
-                "tokens_used": ai_response.tokens_used,
-                "estimated_cost": ai_response.estimated_cost,
-                "provider": ai_response.provider,
-                "model": ai_response.model,
-                "response_style": response_style,
-                "ai_turn": ai_turn_count + 1,
-                "max_ai_turns": max_ai_turns,
-                "tool_calls": [
-                    {"name": tc.name, "arguments": tc.arguments}
-                    for tc in ai_response.tool_calls
-                ],
-            }
-            
-            # Add tool execution results if present
-            if ai_response.tool_results:
-                ai_metadata["tool_results"] = {}
-                for tool_name, result in ai_response.tool_results.items():
-                    ai_metadata["tool_results"][tool_name] = {
-                        "success": result.success,
-                        "message": result.message,
-                        "data": result.data,
-                        "error": result.error,
-                    }
-
-            # Handle escalation if AI requested it
+            # Check if AI wants to escalate
             if ai_response.should_escalate:
                 await self._handle_escalation(
                     conversation,
-                    ai_response.escalation_reason,
-                    ai_response.escalation_priority
+                    reason=ai_response.escalation_reason,
+                    priority=ai_response.escalation_priority
                 )
+                # Still save the AI's response if it provided one
+                if ai_response.content:
+                    ai_msg = await self.add_message(
+                        conversation_id=conversation.id,
+                        sender_type=SenderType.AI,
+                        content=ai_response.content,
+                        ai_metadata={
+                            "escalated": True,
+                            "reason": ai_response.escalation_reason
+                        }
+                    )
+                return customer_msg, ai_msg
+
+            # Build metadata
+            ai_metadata = {
+                "provider": ai_response.provider,
+                "tokens": ai_response.tokens_used,
+                "cost": ai_response.estimated_cost,
+                "tools_used": list(ai_response.tool_results.keys()) if ai_response.tool_results else [],
+            }
 
             ai_msg = await self.add_message(
                 conversation_id=conversation.id,

@@ -4,6 +4,7 @@ Handles the embeddable chat widget functionality.
 These endpoints are public but scoped to a specific tenant.
 
 UPDATED: Now reads from new nested settings structure set by Admin UI.
+UPDATED: Now emits WebSocket events for real-time agent dashboard updates.
 """
 
 from fastapi import APIRouter, HTTPException, status, Path, Depends
@@ -13,6 +14,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.websocket import emit_new_message  # NEW: WebSocket emitter
 from app.services.chat_service import ChatService
 from app.schemas.chat import (
     WidgetConfig, WidgetBranding, WidgetFeatures,
@@ -189,7 +191,10 @@ async def send_widget_message(
 ):
     """
     Send a message from the customer via widget.
-    Triggers AI processing and returns response.
+    
+    If conversation is AI-handled, triggers AI processing and returns response.
+    If conversation has been taken over by human agent, just saves message
+    and emits WebSocket event (no AI response).
     """
     tenant = await resolve_tenant(tenant_id, service)
 
@@ -209,7 +214,7 @@ async def send_widget_message(
             detail="Conversation not found"
         )
 
-    # Process message and get AI response
+    # Process message and get AI response (if AI is handling)
     customer_msg, ai_msg = await service.send_customer_message(
         conversation=conversation,
         tenant=tenant,
@@ -218,10 +223,42 @@ async def send_widget_message(
 
     await db.commit()
 
+    # =========================================================================
+    # NEW: Emit WebSocket event for customer message
+    # This notifies agents in the dashboard about the new message
+    # =========================================================================
+    await emit_new_message(
+        tenant_id=tenant.id,
+        conversation_id=conv_uuid,
+        message_data={
+            "id": str(customer_msg.id),
+            "conversation_id": str(customer_msg.conversation_id),
+            "sender_type": customer_msg.sender_type.value if hasattr(customer_msg.sender_type, 'value') else customer_msg.sender_type,
+            "sender_id": str(customer_msg.sender_id) if customer_msg.sender_id else None,
+            "content": customer_msg.content,
+            "created_at": customer_msg.created_at.isoformat(),
+        }
+    )
+
+    # Also emit AI response if there was one
+    if ai_msg:
+        await emit_new_message(
+            tenant_id=tenant.id,
+            conversation_id=conv_uuid,
+            message_data={
+                "id": str(ai_msg.id),
+                "conversation_id": str(ai_msg.conversation_id),
+                "sender_type": ai_msg.sender_type.value if hasattr(ai_msg.sender_type, 'value') else ai_msg.sender_type,
+                "sender_id": None,
+                "content": ai_msg.content,
+                "created_at": ai_msg.created_at.isoformat(),
+            }
+        )
+
     return SendMessageResponse(
         customer_message=service.format_message_response(customer_msg),
         ai_response=service.format_message_response(ai_msg) if ai_msg else None,
-        ai_confidence=0.85  # TODO: Get from AI metadata
+        ai_confidence=0.85 if ai_msg else None
     )
 
 

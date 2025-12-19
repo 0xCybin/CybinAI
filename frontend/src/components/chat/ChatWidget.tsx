@@ -9,6 +9,13 @@ import {
   WidgetConfig,
   Message,
 } from '@/lib/widget-api';
+import {
+  connectWidgetSocket,
+  disconnectWidgetSocket,
+  onWidgetMessage,
+  offWidgetMessage,
+  NewMessageEvent,
+} from '@/lib/widgetSocket';
 import styles from './ChatWidget.module.css';
 
 // ============================================
@@ -198,6 +205,61 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     loadConfig();
   }, [tenantId]);
 
+  // ============================================
+  // WEBSOCKET CONNECTION FOR REAL-TIME UPDATES
+  // ============================================
+  useEffect(() => {
+    if (!conversationId) return;
+
+    console.log('[ChatWidget] Connecting to WebSocket for conversation:', conversationId);
+    const socket = connectWidgetSocket(conversationId);
+
+    const handleNewMessage = (data: NewMessageEvent) => {
+      console.log('[ChatWidget] Received message via WebSocket:', data);
+      
+      // Only add if it's for this conversation and not from customer
+      // (we already show customer messages immediately when they're sent)
+      if (data.conversation_id === conversationId && data.message.sender_type !== 'customer') {
+        // Check if message already exists (prevent duplicates from HTTP response + WebSocket)
+        setMessages(prev => {
+          const exists = prev.some(m => m.id === data.message.id);
+          if (exists) {
+            console.log('[ChatWidget] Message already exists, skipping duplicate');
+            return prev;
+          }
+          console.log('[ChatWidget] Adding new message from WebSocket');
+          
+          // Map 'system' sender_type to 'agent' for display purposes
+          // (the Message type from widget-api doesn't include 'system')
+          const senderType = data.message.sender_type === 'system' 
+            ? 'agent' 
+            : data.message.sender_type as 'customer' | 'ai' | 'agent';
+          
+          return [...prev, {
+            id: data.message.id,
+            conversation_id: data.message.conversation_id,
+            sender_type: senderType,
+            content: data.message.content,
+            created_at: data.message.created_at,
+          }];
+        });
+
+        // If widget is closed, show notification badge
+        if (!isOpen) {
+          setHasNewMessage(true);
+        }
+      }
+    };
+
+    onWidgetMessage(handleNewMessage);
+
+    return () => {
+      console.log('[ChatWidget] Disconnecting WebSocket');
+      offWidgetMessage(handleNewMessage);
+      disconnectWidgetSocket();
+    };
+  }, [conversationId, isOpen]);
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -274,15 +336,21 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     try {
       const response = await sendMessage(tenantId, conversationId, userMessage);
       
-      // Add AI response
+      // Add AI response (if present and not already added via WebSocket)
       if (response.ai_response) {
-        setMessages(prev => [...prev, {
-          id: response.ai_response!.id,
-          conversation_id: conversationId,
-          sender_type: response.ai_response!.sender_type,
-          content: response.ai_response!.content,
-          created_at: response.ai_response!.created_at,
-        }]);
+        setMessages(prev => {
+          // Check if already added via WebSocket
+          const exists = prev.some(m => m.id === response.ai_response!.id);
+          if (exists) return prev;
+          
+          return [...prev, {
+            id: response.ai_response!.id,
+            conversation_id: conversationId,
+            sender_type: response.ai_response!.sender_type,
+            content: response.ai_response!.content,
+            created_at: response.ai_response!.created_at,
+          }];
+        });
       }
     } catch {
       setError('Failed to send message. Please try again.');
