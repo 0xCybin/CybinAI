@@ -7,9 +7,7 @@ Handles real-time communication for:
 
 Architecture:
 - Each tenant gets their own "room" for isolation (agents)
-- Each conversation gets its own "room" (widgets)
-- Agents join their tenant's room on connect
-- Widgets join their conversation's room on connect
+- Each conversation gets its own room (widget clients)
 - Events are broadcast to appropriate rooms
 """
 
@@ -47,9 +45,11 @@ async def connect(sid: str, environ: dict, auth: Optional[dict] = None):
     """
     Handle new WebSocket connection.
     
-    Two connection types supported:
-    1. Agent: { "tenant_id": "uuid", "user_id": "uuid" } - joins tenant room
-    2. Widget: { "conversation_id": "uuid" } - joins conversation room (no auth needed)
+    Two connection types:
+    1. Agent Dashboard: { "tenant_id": "uuid", "user_id": "uuid" }
+       - Joins tenant room to see all conversations
+    2. Widget: { "conversation_id": "uuid" }
+       - Joins conversation room to receive agent messages
     """
     logger.info(f"WebSocket connect attempt: sid={sid}")
     
@@ -57,62 +57,56 @@ async def connect(sid: str, environ: dict, auth: Optional[dict] = None):
         logger.warning(f"Connection rejected - no auth provided: sid={sid}")
         return False  # Reject connection
     
-    # Check if this is a widget connection (conversation_id only, no tenant/user)
-    conversation_id = auth.get("conversation_id")
     tenant_id = auth.get("tenant_id")
     user_id = auth.get("user_id")
+    conversation_id = auth.get("conversation_id")
     
-    # Widget connection - just needs conversation_id
-    if conversation_id and not tenant_id:
-        room = f"conversation:{conversation_id}"
-        await sio.enter_room(sid, room)
+    # Widget connection (has conversation_id)
+    if conversation_id:
         await sio.save_session(sid, {
             "type": "widget",
             "conversation_id": conversation_id,
         })
-        logger.info(f"Widget connected: sid={sid}, conversation={conversation_id}, room={room}")
-        await sio.emit("connected", {"status": "ok", "type": "widget", "room": room}, to=sid)
+        
+        # Join conversation-specific room
+        room = f"conversation:{conversation_id}"
+        await sio.enter_room(sid, room)
+        
+        logger.info(f"Widget connected: sid={sid}, conversation={conversation_id}")
+        await sio.emit("connected", {"status": "ok", "room": room, "type": "widget"}, to=sid)
         return True
     
-    # Agent connection - requires tenant_id
-    if not tenant_id:
-        logger.warning(f"Connection rejected - no tenant_id or conversation_id: sid={sid}")
-        return False
+    # Agent connection (has tenant_id)
+    if tenant_id:
+        await sio.save_session(sid, {
+            "type": "agent",
+            "tenant_id": tenant_id,
+            "user_id": user_id,
+        })
+        
+        # Join tenant room
+        room = f"tenant:{tenant_id}"
+        await sio.enter_room(sid, room)
+        
+        logger.info(f"Agent connected: sid={sid}, tenant={tenant_id}, user={user_id}")
+        await sio.emit("connected", {"status": "ok", "room": room, "type": "agent"}, to=sid)
+        return True
     
-    # Store user info in session
-    await sio.save_session(sid, {
-        "type": "agent",
-        "tenant_id": tenant_id,
-        "user_id": user_id,
-    })
-    
-    # Join tenant's room
-    room = f"tenant:{tenant_id}"
-    await sio.enter_room(sid, room)
-    
-    logger.info(f"Agent connected: sid={sid}, tenant={tenant_id}, user={user_id}, room={room}")
-    
-    # Notify the client they're connected
-    await sio.emit("connected", {"status": "ok", "type": "agent", "room": room}, to=sid)
-    
-    return True  # Accept connection
+    logger.warning(f"Connection rejected - missing tenant_id or conversation_id: sid={sid}")
+    return False
 
 
 @sio.event
 async def disconnect(sid: str):
     """Handle WebSocket disconnection."""
-    try:
-        session = await sio.get_session(sid)
-        connection_type = session.get("type", "unknown") if session else "unknown"
-        
-        if connection_type == "widget":
-            conversation_id = session.get("conversation_id", "unknown")
-            logger.info(f"Widget disconnected: sid={sid}, conversation={conversation_id}")
+    session = await sio.get_session(sid)
+    if session:
+        conn_type = session.get("type", "unknown")
+        if conn_type == "widget":
+            logger.info(f"Widget disconnected: sid={sid}, conversation={session.get('conversation_id')}")
         else:
-            tenant_id = session.get("tenant_id", "unknown")
-            logger.info(f"Agent disconnected: sid={sid}, tenant={tenant_id}")
-    except Exception as e:
-        logger.warning(f"Error getting session on disconnect: {e}")
+            logger.info(f"Agent disconnected: sid={sid}, tenant={session.get('tenant_id')}")
+    else:
         logger.info(f"WebSocket disconnected: sid={sid}")
 
 
@@ -134,41 +128,53 @@ async def emit_new_message(tenant_id: UUID, conversation_id: UUID, message_data:
     """
     Emit when a new message is added to a conversation.
     
-    Sends to BOTH:
-    - Tenant room (for agents viewing dashboard)
-    - Conversation room (for widget showing this conversation)
+    DUAL-ROOM EMISSION:
+    1. tenant:{tenant_id} - All agents in the tenant see the message
+    2. conversation:{conversation_id} - The specific widget sees the message
+    
+    This ensures both the agent dashboard AND the customer widget
+    receive real-time updates.
     """
+    tenant_room = f"tenant:{tenant_id}"
+    conversation_room = f"conversation:{conversation_id}"
+    
     payload = {
         "conversation_id": str(conversation_id),
         "message": message_data,
     }
     
-    # Emit to tenant room (agents see all tenant conversations)
-    tenant_room = f"tenant:{tenant_id}"
-    logger.info(f"Emitting new_message to tenant room {tenant_room}, conversation={conversation_id}")
+    # Emit to tenant room (for agent dashboard)
+    logger.info(f"Emitting new_message to tenant room {tenant_room}")
     await sio.emit("new_message", payload, room=tenant_room)
     
-    # Also emit to conversation room (widget for this specific conversation)
-    conv_room = f"conversation:{conversation_id}"
-    logger.info(f"Emitting new_message to conversation room {conv_room}")
-    await sio.emit("new_message", payload, room=conv_room)
+    # Emit to conversation room (for widget)
+    logger.info(f"Emitting new_message to conversation room {conversation_room}")
+    await sio.emit("new_message", payload, room=conversation_room)
 
 
 async def emit_conversation_updated(tenant_id: UUID, conversation_id: UUID, update_data: dict):
     """
     Emit when a conversation is updated (status, assignment, etc.)
-    Agents will see the conversation update in their list.
+    
+    DUAL-ROOM EMISSION:
+    1. tenant room - Agents see conversation list updates
+    2. conversation room - Widget can react to status changes
     """
-    room = f"tenant:{tenant_id}"
-    logger.info(f"Emitting conversation_updated to room {room}, conversation={conversation_id}")
-    await sio.emit(
-        "conversation_updated",
-        {
-            "conversation_id": str(conversation_id),
-            **update_data,
-        },
-        room=room,
-    )
+    tenant_room = f"tenant:{tenant_id}"
+    conversation_room = f"conversation:{conversation_id}"
+    
+    payload = {
+        "conversation_id": str(conversation_id),
+        **update_data,
+    }
+    
+    # Emit to tenant room (for agent dashboard)
+    logger.info(f"Emitting conversation_updated to tenant room {tenant_room}")
+    await sio.emit("conversation_updated", payload, room=tenant_room)
+    
+    # Emit to conversation room (for widget - e.g., to show "agent joined")
+    logger.info(f"Emitting conversation_updated to conversation room {conversation_room}")
+    await sio.emit("conversation_updated", payload, room=conversation_room)
 
 
 async def emit_typing_indicator(tenant_id: UUID, conversation_id: UUID, sender_type: str, is_typing: bool):
@@ -176,19 +182,18 @@ async def emit_typing_indicator(tenant_id: UUID, conversation_id: UUID, sender_t
     Emit typing indicator.
     Shows when customer or agent is typing.
     """
+    tenant_room = f"tenant:{tenant_id}"
+    conversation_room = f"conversation:{conversation_id}"
+    
     payload = {
         "conversation_id": str(conversation_id),
         "sender_type": sender_type,
         "is_typing": is_typing,
     }
     
-    # Emit to tenant room (for agents)
-    tenant_room = f"tenant:{tenant_id}"
+    # Emit to both rooms
     await sio.emit("typing", payload, room=tenant_room)
-    
-    # Also emit to conversation room (for widget)
-    conv_room = f"conversation:{conversation_id}"
-    await sio.emit("typing", payload, room=conv_room)
+    await sio.emit("typing", payload, room=conversation_room)
 
 
 # =============================================================================
@@ -205,7 +210,7 @@ async def join_conversation(sid: str, data: dict):
     if conversation_id:
         room = f"conversation:{conversation_id}"
         await sio.enter_room(sid, room)
-        logger.info(f"Client {sid} joined conversation room: {room}")
+        logger.info(f"Agent {sid} joined conversation room: {room}")
 
 
 @sio.event
@@ -215,7 +220,7 @@ async def leave_conversation(sid: str, data: dict):
     if conversation_id:
         room = f"conversation:{conversation_id}"
         await sio.leave_room(sid, room)
-        logger.info(f"Client {sid} left conversation room: {room}")
+        logger.info(f"Agent {sid} left conversation room: {room}")
 
 
 @sio.event

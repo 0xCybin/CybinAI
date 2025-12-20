@@ -7,58 +7,101 @@ import {
   sendMessage,
   requestHumanAgent,
   WidgetConfig,
-  Message,
+  Message as BaseMessage,
 } from '@/lib/widget-api';
-import { getWidgetSocket } from '@/lib/widgetSocket';
+import { 
+  connectWidgetSocket, 
+  disconnectWidgetSocket,
+  onWidgetMessage,
+  offWidgetMessage,
+  NewMessageEvent,
+} from '@/lib/widgetSocket';
 import styles from './ChatWidget.module.css';
 
 // ============================================
-// SVG ICONS
+// EXTENDED MESSAGE TYPE
+// Widget messages from WebSocket include sender_name
+// ============================================
+
+interface Message extends BaseMessage {
+  sender_name?: string | null;
+}
+
+// ============================================
+// ICONS (inline SVGs for zero dependencies)
 // ============================================
 
 const ChatIcon = () => (
-  <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 );
 
-const CloseIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
 const SendIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
   </svg>
 );
 
+const MinimizeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="4 14 10 14 10 20" />
+    <polyline points="20 10 14 10 14 4" />
+    <line x1="14" y1="10" x2="21" y2="3" />
+    <line x1="3" y1="21" x2="10" y2="14" />
+  </svg>
+);
+
+// Human/Agent Icon
 const UserIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
   </svg>
 );
 
-// Sparkles icon for AI - clean and professional
-const SparklesIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-    <path d="M12 2L13.09 8.26L19 9L13.09 9.74L12 16L10.91 9.74L5 9L10.91 8.26L12 2Z" />
-    <path d="M18 14L18.62 17.38L22 18L18.62 18.62L18 22L17.38 18.62L14 18L17.38 17.38L18 14Z" opacity="0.7" />
-    <path d="M6 14L6.38 16.62L9 17L6.38 17.38L6 20L5.62 17.38L3 17L5.62 16.62L6 14Z" opacity="0.5" />
+// Bot Icon for AI
+const BotIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="10" rx="2" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v4" />
+    <line x1="8" y1="16" x2="8" y2="16" />
+    <line x1="16" y1="16" x2="16" y2="16" />
+  </svg>
+);
+
+// Headset Icon for "Talk to Human" button
+const HeadsetIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
   </svg>
 );
 
 // ============================================
-// COLOR UTILITY
+// HELPER: Darken/lighten color for gradients
 // ============================================
-
-function adjustColor(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
-  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
-  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+function adjustColor(hex: string, percent: number): string {
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  const adjust = (value: number) => {
+    if (percent > 0) {
+      return Math.min(255, Math.floor(value + (255 - value) * (percent / 100)));
+    } else {
+      return Math.max(0, Math.floor(value * (1 + percent / 100)));
+    }
+  };
+  
+  const newR = adjust(r);
+  const newG = adjust(g);
+  const newB = adjust(b);
+  
+  return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
 }
 
 // ============================================
@@ -74,7 +117,7 @@ const TypingIndicator = () => (
 );
 
 // ============================================
-// MESSAGE BUBBLE - IMPROVED
+// MESSAGE BUBBLE
 // ============================================
 
 interface MessageBubbleProps {
@@ -91,21 +134,55 @@ interface MessageBubbleProps {
 const MessageBubble = ({ message, isLatest, colors }: MessageBubbleProps) => {
   const isCustomer = message.sender_type === 'customer';
   const isAI = message.sender_type === 'ai';
+  const isAgent = message.sender_type === 'agent';
+  
+  // Get sender label
+  const getSenderLabel = () => {
+    if (isCustomer) return 'You';
+    if (isAI) return 'AI Assistant';
+    return message.sender_name || 'Support Agent';
+  };
 
-  // Customer message styles - right side, primary color
+  // Dynamic styles - Different colors for AI vs Human Agent
   const customerBubbleStyle = isCustomer ? {
     background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
-    boxShadow: `0 2px 8px ${colors.primary}30`,
+    boxShadow: `0 2px 8px ${colors.primary}40`,
+    color: '#FFFFFF',
   } : {};
 
-  // AI/Agent message styles - left side
-  const respondentBubbleStyle = !isCustomer ? {
-    background: adjustColor(colors.background, 8),
-    border: `1px solid ${colors.text}08`,
+  // AI bubbles: Subtle blue tint
+  const aiBubbleStyle = isAI ? {
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)',
+    border: '1px solid rgba(59, 130, 246, 0.2)',
+    color: colors.text,
   } : {};
+
+  // Human agent bubbles: Warm amber tint (different from AI)
+  const agentBubbleStyle = isAgent ? {
+    background: 'linear-gradient(135deg, rgba(217, 119, 6, 0.15) 0%, rgba(180, 83, 9, 0.1) 100%)',
+    border: '1px solid rgba(217, 119, 6, 0.2)',
+    color: colors.text,
+  } : {};
+
+  // AI avatar: Blue gradient
+  const aiAvatarStyle = {
+    background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+    boxShadow: '0 2px 6px rgba(59, 130, 246, 0.4)',
+  };
+
+  // Human agent avatar: Amber gradient
+  const agentAvatarStyle = {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
+    boxShadow: `0 2px 6px ${colors.primary}50`,
+  };
 
   const timeStyle = {
-    color: isCustomer ? 'rgba(255,255,255,0.7)' : `${colors.text}50`,
+    color: isCustomer ? 'rgba(255,255,255,0.8)' : `${colors.text}60`,
+  };
+
+  // Sender label style
+  const labelStyle = {
+    color: isAI ? 'rgba(59, 130, 246, 0.8)' : isAgent ? `${colors.primary}` : `${colors.text}60`,
   };
   
   return (
@@ -113,46 +190,83 @@ const MessageBubble = ({ message, isLatest, colors }: MessageBubbleProps) => {
       className={`${styles.messageWrapper} ${isCustomer ? styles.messageCustomer : styles.messageAgent}`}
       style={isLatest ? { animation: 'fadeInUp 0.3s ease-out forwards' } : undefined}
     >
-      {/* Avatar/Icon for AI and Agent messages */}
+      {/* Avatar for non-customer messages */}
       {!isCustomer && (
-        <div className={styles.senderSection}>
-          <div 
-            className={styles.messageAvatar}
-            style={{
-              background: isAI 
-                ? `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.primary}10 100%)`
-                : `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
-              border: isAI ? `1px solid ${colors.primary}30` : 'none',
-            }}
-          >
-            {isAI ? (
-              <span style={{ color: colors.primary }}><SparklesIcon /></span>
-            ) : (
-              <span style={{ color: '#fff' }}><UserIcon /></span>
-            )}
-          </div>
-          <span 
-            className={styles.senderLabel}
-            style={{ color: isAI ? colors.primary : `${colors.text}70` }}
-          >
-            {isAI ? 'AI Assistant' : 'Support Agent'}
-          </span>
+        <div 
+          className={styles.messageAvatar} 
+          style={isAI ? aiAvatarStyle : agentAvatarStyle}
+          title={isAI ? 'AI Assistant' : 'Human Agent'}
+        >
+          {isAI ? <BotIcon /> : <UserIcon />}
         </div>
       )}
       
-      {/* Message Bubble */}
-      <div 
-        className={`${styles.messageBubble} ${isCustomer ? styles.bubbleCustomer : styles.bubbleAgent}`}
-        style={isCustomer ? customerBubbleStyle : respondentBubbleStyle}
-      >
-        <p 
-          className={styles.messageText} 
-          style={{ color: isCustomer ? '#FFFFFF' : colors.text }}
+      <div className={styles.messageContent}>
+        {/* Sender Label */}
+        <span className={styles.senderLabel} style={labelStyle}>
+          {getSenderLabel()}
+        </span>
+        
+        {/* Message Bubble */}
+        <div 
+          className={`${styles.messageBubble} ${isCustomer ? styles.bubbleCustomer : styles.bubbleAgent} ${isAI ? styles.bubbleAI : ''} ${isAgent ? styles.bubbleHuman : ''}`}
+          style={isCustomer ? customerBubbleStyle : (isAI ? aiBubbleStyle : agentBubbleStyle)}
         >
-          {message.content}
-        </p>
-        <span className={styles.messageTime} style={timeStyle}>
-          {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <p className={styles.messageText} style={{ color: isCustomer ? '#FFFFFF' : colors.text }}>
+            {message.content}
+          </p>
+          <span className={styles.messageTime} style={timeStyle}>
+            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// STATUS BANNER COMPONENT
+// ============================================
+
+interface StatusBannerProps {
+  isAIHandled: boolean;
+  agentName?: string;
+  colors: {
+    primary: string;
+    text: string;
+  };
+}
+
+const StatusBanner = ({ isAIHandled, agentName, colors }: StatusBannerProps) => {
+  if (isAIHandled) {
+    return (
+      <div className={styles.statusBanner} style={{ 
+        background: 'rgba(59, 130, 246, 0.1)',
+        borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+      }}>
+        <div className={styles.statusBannerContent}>
+          <div className={styles.statusBannerIcon} style={{ background: 'rgba(59, 130, 246, 0.2)' }}>
+            <BotIcon />
+          </div>
+          <span style={{ color: 'rgba(147, 197, 253, 0.9)' }}>
+            Chatting with AI Assistant
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.statusBanner} style={{ 
+      background: `${colors.primary}15`,
+      borderBottom: `1px solid ${colors.primary}30`,
+    }}>
+      <div className={styles.statusBannerContent}>
+        <div className={styles.statusBannerIcon} style={{ background: `${colors.primary}25` }}>
+          <UserIcon />
+        </div>
+        <span style={{ color: colors.primary }}>
+          {agentName ? `Connected with ${agentName}` : 'Connected with Support Agent'}
         </span>
       </div>
     </div>
@@ -179,7 +293,10 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasNewMessage, setHasNewMessage] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  
+  // Track if AI is handling or human agent has taken over
+  const [isAIHandled, setIsAIHandled] = useState(true);
+  const [agentName, setAgentName] = useState<string | undefined>(undefined);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -210,56 +327,68 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     loadConfig();
   }, [tenantId]);
 
-  // WebSocket setup for real-time agent messages
+  // WebSocket connection for real-time agent messages
   useEffect(() => {
     if (!conversationId) return;
 
-    const socket = getWidgetSocket();
+    // Connect to WebSocket
+    connectWidgetSocket(conversationId);
 
-    const handleConnect = () => {
-      console.log('[ChatWidget] Socket connected, joining room:', conversationId);
-      socket.emit('join_conversation', { conversation_id: conversationId });
-    };
-
-    const handleNewMessage = (data: { message: Message }) => {
-      console.log('[ChatWidget] New message received:', data);
+    // Handler for new messages
+    const handleNewMessage = (data: NewMessageEvent) => {
+      const incomingMessage = data.message;
       
-      // Only add if not already present and not from customer
-      if (data.message.sender_type !== 'customer') {
+      // Only add messages from agents/AI (not our own customer messages)
+      if (incomingMessage.sender_type !== 'customer') {
         setMessages(prev => {
-          const exists = prev.some(m => m.id === data.message.id);
-          if (exists) return prev;
-          return [...prev, data.message];
+          // Avoid duplicates
+          if (prev.some(m => m.id === incomingMessage.id)) {
+            return prev;
+          }
+          // Cast to our extended Message type
+          const newMessage: Message = {
+            id: incomingMessage.id,
+            conversation_id: incomingMessage.conversation_id,
+            sender_type: incomingMessage.sender_type as 'customer' | 'ai' | 'agent',
+            content: incomingMessage.content,
+            created_at: incomingMessage.created_at,
+            // sender_name might come from metadata or not exist
+            sender_name: (incomingMessage.metadata?.sender_name as string) || undefined,
+          };
+          return [...prev, newMessage];
         });
         
+        // If we receive an agent message, they've taken over
+        if (incomingMessage.sender_type === 'agent') {
+          setIsAIHandled(false);
+          // Try to get agent name from metadata
+          const name = incomingMessage.metadata?.sender_name as string | undefined;
+          if (name) {
+            setAgentName(name);
+          }
+        }
+        
+        // Notify if widget is minimized
         if (!isOpen) {
           setHasNewMessage(true);
         }
       }
-      setIsTyping(false);
     };
 
-    socket.on('connect', handleConnect);
-    socket.on('new_message', handleNewMessage);
-    
-    if (!socket.connected) {
-      socket.connect();
-    } else {
-      // Already connected, join room immediately
-      socket.emit('join_conversation', { conversation_id: conversationId });
-    }
+    // Subscribe to messages
+    onWidgetMessage(handleNewMessage);
 
+    // Cleanup
     return () => {
-      socket.off('connect', handleConnect);
-      socket.off('new_message', handleNewMessage);
-      socket.emit('leave_conversation', { conversation_id: conversationId });
+      offWidgetMessage(handleNewMessage);
+      disconnectWidgetSocket();
     };
   }, [conversationId, isOpen]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [messages]);
 
   // Focus input when widget opens
   useEffect(() => {
@@ -270,12 +399,15 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
 
   // Start conversation
   const initConversation = useCallback(async () => {
-    if (conversationId) return;
+    if (conversationId) {
+      return;
+    }
     
     setIsLoading(true);
     try {
       const conv = await startConversation(tenantId);
       setConversationId(conv.conversation_id);
+      setIsAIHandled(true); // New conversations start with AI
       
       // Add welcome message
       const welcomeMsg = conv.welcome_message || config?.welcome_message || 'Hi! How can we help you today?';
@@ -316,7 +448,6 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     const userMessage = inputValue.trim();
     setInputValue('');
     setIsSending(true);
-    setIsTyping(true);
 
     // Add user message immediately
     const userMsg: Message = {
@@ -331,12 +462,13 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     try {
       const response = await sendMessage(tenantId, conversationId, userMessage);
       
-      // Add AI response (if present - might come via WebSocket instead)
+      // Add AI response (only if AI is still handling and not already added via WebSocket)
       if (response.ai_response) {
         setMessages(prev => {
-          // Check if already added via WebSocket
-          const exists = prev.some(m => m.id === response.ai_response!.id);
-          if (exists) return prev;
+          // Check if this message already exists (could have arrived via WebSocket)
+          if (prev.some(m => m.id === response.ai_response!.id)) {
+            return prev;
+          }
           return [...prev, {
             id: response.ai_response!.id,
             conversation_id: conversationId,
@@ -345,11 +477,9 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
             created_at: response.ai_response!.created_at,
           }];
         });
-        setIsTyping(false);
       }
     } catch {
       setError('Failed to send message. Please try again.');
-      setIsTyping(false);
     } finally {
       setIsSending(false);
     }
@@ -369,12 +499,11 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     
     try {
       await requestHumanAgent(tenantId, conversationId);
-      // Add system message
       setMessages(prev => [...prev, {
         id: `system-${Date.now()}`,
         conversation_id: conversationId,
-        sender_type: 'agent' as const,
-        content: 'A human agent will be with you shortly. Please hold tight!',
+        sender_type: 'ai' as const,
+        content: 'I\'m connecting you with a human agent. Please hold tight — someone will be with you shortly!',
         created_at: new Date().toISOString(),
       }]);
     } catch {
@@ -392,10 +521,10 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
     text: config.text_color || '#F5F5F4',
   };
 
-  // Dynamic styles
+  // Dynamic styles based on ALL colors
   const bubbleStyle = {
     background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
-    boxShadow: `0 4px 14px ${colors.primary}50, 0 2px 6px rgba(0, 0, 0, 0.2)`,
+    boxShadow: `0 4px 14px ${colors.primary}66, 0 2px 6px rgba(0, 0, 0, 0.2)`,
   };
 
   const headerStyle = {
@@ -423,13 +552,13 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
 
   const sendButtonStyle = {
     background: `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
-    boxShadow: `0 2px 6px ${colors.primary}40`,
+    boxShadow: `0 2px 6px ${colors.primary}50`,
   };
 
   const footerStyle = {
     background: adjustColor(colors.background, -10),
     borderColor: `${colors.text}10`,
-    color: `${colors.text}60`,
+    color: `${colors.text}80`,
   };
 
   const footerBrandStyle = {
@@ -444,43 +573,59 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
           className={`${styles.chatWindow} ${isClosing ? styles.chatWindowClosing : ''}`}
           style={chatWindowStyle}
         >
-          {/* Header */}
+          {/* Header - PRIMARY COLOR */}
           <div className={styles.header} style={headerStyle}>
             <div className={styles.headerContent}>
+              <div className={styles.headerLogo}>✦</div>
               <div className={styles.headerInfo}>
                 <h3 className={styles.headerTitle}>{config.business_name}</h3>
-                <div className={styles.headerStatus}>
+                <span className={styles.headerStatus}>
                   <span className={styles.statusDot} />
-                  <span>{config.is_online ? 'Online' : 'Offline'}</span>
-                </div>
+                  {config.is_online ? 'Online now' : 'Away'}
+                </span>
               </div>
             </div>
             <div className={styles.headerActions}>
-              <button 
-                className={styles.headerButton}
-                onClick={handleRequestHuman}
-                title="Talk to a human"
-                type="button"
-              >
-                <UserIcon />
-              </button>
+              {/* Only show "Talk to Human" if AI is currently handling */}
+              {isAIHandled && (
+                <button 
+                  className={styles.headerButton}
+                  onClick={handleRequestHuman}
+                  title="Talk to a human"
+                  type="button"
+                >
+                  <HeadsetIcon />
+                </button>
+              )}
               <button 
                 className={styles.headerButton}
                 onClick={handleClose}
-                aria-label="Close chat"
+                title="Minimize"
                 type="button"
               >
-                <CloseIcon />
+                <MinimizeIcon />
               </button>
             </div>
           </div>
 
-          {/* Messages */}
-          <div className={styles.messagesContainer} style={messagesContainerStyle}>
+          {/* Status Banner - Shows who customer is chatting with */}
+          {!isLoading && messages.length > 0 && (
+            <StatusBanner 
+              isAIHandled={isAIHandled} 
+              agentName={agentName}
+              colors={colors}
+            />
+          )}
+
+          {/* Messages - BACKGROUND COLOR */}
+          <div 
+            className={`${styles.messagesContainer} scrollbar-custom`}
+            style={messagesContainerStyle}
+          >
             {isLoading ? (
-              <div className={styles.loadingContainer}>
+              <div className={styles.loadingContainer} style={{ color: colors.text }}>
                 <div className={styles.loadingSpinner} style={{ borderTopColor: colors.primary }} />
-                <span>Starting chat...</span>
+                <p>Starting conversation...</p>
               </div>
             ) : (
               <>
@@ -492,25 +637,36 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
                     colors={colors}
                   />
                 ))}
-                {/* Typing indicator */}
-                {isTyping && (
+                {isSending && (
                   <div className={`${styles.messageWrapper} ${styles.messageAgent}`}>
-                    <div className={styles.senderSection}>
+                    <div 
+                      className={styles.messageAvatar}
+                      style={{
+                        background: isAIHandled 
+                          ? 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)'
+                          : `linear-gradient(135deg, ${colors.primary} 0%, ${adjustColor(colors.primary, -20)} 100%)`,
+                      }}
+                    >
+                      {isAIHandled ? <BotIcon /> : <UserIcon />}
+                    </div>
+                    <div className={styles.messageContent}>
+                      <span className={styles.senderLabel} style={{ color: isAIHandled ? 'rgba(59, 130, 246, 0.8)' : colors.primary }}>
+                        {isAIHandled ? 'AI Assistant' : (agentName || 'Support Agent')}
+                      </span>
                       <div 
-                        className={styles.messageAvatar}
-                        style={{
-                          background: `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.primary}10 100%)`,
-                          border: `1px solid ${colors.primary}30`,
+                        className={`${styles.messageBubble} ${styles.bubbleAgent}`}
+                        style={{ 
+                          background: isAIHandled 
+                            ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)'
+                            : `linear-gradient(135deg, ${colors.primary}20 0%, ${colors.primary}10 100%)`,
+                          border: isAIHandled 
+                            ? '1px solid rgba(59, 130, 246, 0.2)'
+                            : `1px solid ${colors.primary}30`,
+                          color: colors.text,
                         }}
                       >
-                        <span style={{ color: colors.primary }}><SparklesIcon /></span>
+                        <TypingIndicator />
                       </div>
-                    </div>
-                    <div 
-                      className={`${styles.messageBubble} ${styles.bubbleAgent}`}
-                      style={{ background: adjustColor(colors.background, 8), border: `1px solid ${colors.text}08` }}
-                    >
-                      <TypingIndicator />
                     </div>
                   </div>
                 )}
@@ -527,7 +683,7 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
             </div>
           )}
 
-          {/* Input */}
+          {/* Input - BACKGROUND + TEXT COLORS */}
           <div className={styles.inputContainer} style={inputContainerStyle}>
             <input
               ref={inputRef}
@@ -543,6 +699,7 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
               autoComplete="off"
               style={inputStyle}
             />
+            {/* Send Button - PRIMARY COLOR */}
             <button
               className={styles.sendButton}
               onClick={handleSend}
@@ -561,7 +718,7 @@ export default function ChatWidget({ tenantId }: ChatWidgetProps) {
         </div>
       )}
 
-      {/* Floating Bubble */}
+      {/* Floating Bubble - PRIMARY COLOR */}
       <button
         className={`${styles.bubble} ${isOpen ? styles.bubbleHidden : ''} ${hasNewMessage ? styles.bubblePulse : ''}`}
         onClick={handleOpen}
