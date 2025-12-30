@@ -1,12 +1,14 @@
 """
 Conversation schemas for Agent Dashboard.
-NEW FILE: backend/app/schemas/conversation.py
+Complete file: backend/app/schemas/conversation.py
 """
 
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
+
+from app.schemas.internal_notes import InternalNoteResponse
 
 
 # ============================================================================
@@ -73,7 +75,7 @@ class ConversationListItem(BaseModel):
 
 
 class ConversationDetail(BaseModel):
-    """Full conversation detail with messages."""
+    """Full conversation detail with messages and internal notes."""
     id: UUID
     tenant_id: UUID
     customer: Optional[CustomerInfo] = None
@@ -85,7 +87,8 @@ class ConversationDetail(BaseModel):
     assigned_to: Optional[UUID] = None
     assigned_agent_name: Optional[str] = None
     metadata: dict = Field(default_factory=dict)
-    messages: list[MessageResponse] = Field(default_factory=list)
+    messages: List[MessageResponse] = Field(default_factory=list)
+    internal_notes: List[InternalNoteResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     
@@ -115,7 +118,7 @@ class ConversationPriorityUpdate(BaseModel):
 
 class ConversationListResponse(BaseModel):
     """Paginated list of conversations."""
-    items: list[ConversationListItem]
+    items: List[ConversationListItem]
     total: int
     page: int
     page_size: int

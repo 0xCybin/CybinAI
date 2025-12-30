@@ -1,6 +1,7 @@
 """
 Conversation/Ticket Endpoints
 Handles conversation management for the agent dashboard.
+Complete file: backend/app/api/v1/endpoints/conversations.py
 """
 
 from datetime import datetime
@@ -12,12 +13,13 @@ from sqlalchemy import select, func, desc, and_
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import DbSession, AuthenticatedUser
-from app.core.websocket import emit_new_message  # NEW: Import WebSocket emitter
+from app.core.websocket import emit_new_message, emit_internal_note
 from app.models.models import (
     Conversation,
     Message,
     Customer,
     User,
+    InternalNote,
     ConversationStatus,
     ConversationPriority,
     SenderType,
@@ -32,6 +34,12 @@ from app.schemas.conversation import (
     MessageCreate,
     MessageResponse,
     CustomerInfo,
+)
+from app.schemas.internal_notes import (
+    InternalNoteCreate,
+    InternalNoteResponse,
+    InternalNoteListResponse,
+    NoteAuthor,
 )
 
 router = APIRouter()
@@ -84,53 +92,69 @@ async def list_conversations(
 ):
     """
     List conversations/tickets for the current tenant.
-    Used by agent dashboard inbox.
+    Supports filtering by status, priority, assignment, and more.
     """
     tenant_id = current.tenant.id
+    offset = (page - 1) * page_size
     
-    # Build filter conditions
-    conditions = [Conversation.tenant_id == tenant_id]
-    
-    if status:
-        conditions.append(Conversation.status == status)
-    if priority:
-        conditions.append(Conversation.priority == priority)
-    if assigned_to:
-        conditions.append(Conversation.assigned_to == assigned_to)
-    if unassigned_only:
-        conditions.append(Conversation.assigned_to.is_(None))
-    if ai_handled is not None:
-        conditions.append(Conversation.ai_handled == ai_handled)
-    if channel:
-        conditions.append(Conversation.channel == channel)
-    
-    # Count total
-    count_query = select(func.count(Conversation.id)).where(and_(*conditions))
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
-    
-    # Get conversations with customer
+    # Base query
     query = (
         select(Conversation)
         .options(selectinload(Conversation.customer))
-        .where(and_(*conditions))
-        .order_by(desc(Conversation.updated_at))
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+        .where(Conversation.tenant_id == tenant_id)
+    )
+    count_query = select(func.count(Conversation.id)).where(
+        Conversation.tenant_id == tenant_id
     )
     
+    # Apply filters
+    if status:
+        query = query.where(Conversation.status == status)
+        count_query = count_query.where(Conversation.status == status)
+    
+    if priority:
+        query = query.where(Conversation.priority == priority)
+        count_query = count_query.where(Conversation.priority == priority)
+    
+    if assigned_to:
+        query = query.where(Conversation.assigned_to == assigned_to)
+        count_query = count_query.where(Conversation.assigned_to == assigned_to)
+    
+    if unassigned_only:
+        query = query.where(Conversation.assigned_to.is_(None))
+        count_query = count_query.where(Conversation.assigned_to.is_(None))
+    
+    if ai_handled is not None:
+        query = query.where(Conversation.ai_handled == ai_handled)
+        count_query = count_query.where(Conversation.ai_handled == ai_handled)
+    
+    if channel:
+        query = query.where(Conversation.channel == channel)
+        count_query = count_query.where(Conversation.channel == channel)
+    
+    # Get total count
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+    
+    # Apply pagination and ordering
+    query = query.order_by(desc(Conversation.updated_at)).offset(offset).limit(page_size)
+    
+    # Execute query
     result = await db.execute(query)
     conversations = result.scalars().all()
     
     # Build response items
     items = []
     for conv in conversations:
+        # Get message stats
         msg_stats = await get_message_stats(db, conv.id)
         
         # Get agent name if assigned
         agent_name = None
         if conv.assigned_to:
-            agent_result = await db.execute(select(User).where(User.id == conv.assigned_to))
+            agent_result = await db.execute(
+                select(User).where(User.id == conv.assigned_to)
+            )
             agent = agent_result.scalar_one_or_none()
             if agent:
                 agent_name = agent.name
@@ -143,7 +167,7 @@ async def list_conversations(
                 email=conv.customer.email,
                 phone=conv.customer.phone,
             ) if conv.customer else None,
-            channel=conv.channel,
+            channel=conv.channel.value if hasattr(conv.channel, 'value') else conv.channel,
             status=conv.status.value if hasattr(conv.status, 'value') else conv.status,
             priority=conv.priority.value if hasattr(conv.priority, 'value') else conv.priority,
             ai_handled=conv.ai_handled,
@@ -173,7 +197,7 @@ async def get_conversation(
     current: AuthenticatedUser,
 ):
     """
-    Get full conversation details including all messages.
+    Get full conversation details including all messages and internal notes.
     """
     tenant_id = current.tenant.id
     
@@ -206,6 +230,16 @@ async def get_conversation(
     msg_result = await db.execute(msg_query)
     messages = msg_result.scalars().all()
     
+    # Get internal notes with author info
+    notes_query = (
+        select(InternalNote)
+        .options(selectinload(InternalNote.author))
+        .where(InternalNote.conversation_id == conversation_id)
+        .order_by(InternalNote.created_at.asc())
+    )
+    notes_result = await db.execute(notes_query)
+    notes = notes_result.scalars().all()
+    
     # Get agent name
     agent_name = None
     if conv.assigned_to:
@@ -223,7 +257,7 @@ async def get_conversation(
             email=conv.customer.email,
             phone=conv.customer.phone,
         ) if conv.customer else None,
-        channel=conv.channel,
+        channel=conv.channel.value if hasattr(conv.channel, 'value') else conv.channel,
         status=conv.status.value if hasattr(conv.status, 'value') else conv.status,
         priority=conv.priority.value if hasattr(conv.priority, 'value') else conv.priority,
         ai_handled=conv.ai_handled,
@@ -242,6 +276,21 @@ async def get_conversation(
                 created_at=m.created_at,
             )
             for m in messages
+        ],
+        internal_notes=[
+            InternalNoteResponse(
+                id=note.id,
+                conversation_id=note.conversation_id,
+                author=NoteAuthor(
+                    id=note.author.id,
+                    name=note.author.name,
+                    avatar_url=note.author.avatar_url,
+                ),
+                content=note.content,
+                mentions=note.mentions or [],
+                created_at=note.created_at,
+            )
+            for note in notes
         ],
         created_at=conv.created_at,
         updated_at=conv.updated_at,
@@ -512,12 +561,7 @@ async def send_message(
     await db.commit()
     await db.refresh(message)
     
-    # =========================================================================
-    # NEW: Emit WebSocket event for real-time updates
-    # This broadcasts to both:
-    # - tenant room (for agent dashboard)
-    # - conversation room (for chat widget)
-    # =========================================================================
+    # Emit WebSocket event for real-time updates
     await emit_new_message(
         tenant_id=tenant_id,
         conversation_id=conversation_id,
@@ -543,6 +587,215 @@ async def send_message(
 
 
 # ============================================================================
+# Internal Notes
+# ============================================================================
+
+@router.get(
+    "/{conversation_id}/notes",
+    response_model=InternalNoteListResponse,
+    summary="List internal notes"
+)
+async def list_internal_notes(
+    conversation_id: UUID,
+    db: DbSession,
+    current: AuthenticatedUser,
+):
+    """
+    Get all internal notes for a conversation.
+    Only accessible to authenticated agents - NEVER exposed to customers.
+    """
+    tenant_id = current.tenant.id
+
+    # Verify conversation exists and belongs to tenant
+    conv_result = await db.execute(
+        select(Conversation).where(
+            and_(
+                Conversation.id == conversation_id,
+                Conversation.tenant_id == tenant_id,
+            )
+        )
+    )
+    conv = conv_result.scalar_one_or_none()
+
+    if not conv:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    # Get all notes with author info
+    notes_query = (
+        select(InternalNote)
+        .options(selectinload(InternalNote.author))
+        .where(InternalNote.conversation_id == conversation_id)
+        .order_by(InternalNote.created_at.asc())
+    )
+    notes_result = await db.execute(notes_query)
+    notes = notes_result.scalars().all()
+
+    return InternalNoteListResponse(
+        items=[
+            InternalNoteResponse(
+                id=note.id,
+                conversation_id=note.conversation_id,
+                author=NoteAuthor(
+                    id=note.author.id,
+                    name=note.author.name,
+                    avatar_url=note.author.avatar_url,
+                ),
+                content=note.content,
+                mentions=note.mentions or [],
+                created_at=note.created_at,
+            )
+            for note in notes
+        ],
+        total=len(notes),
+    )
+
+
+@router.post(
+    "/{conversation_id}/notes",
+    response_model=InternalNoteResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add internal note"
+)
+async def create_internal_note(
+    conversation_id: UUID,
+    data: InternalNoteCreate,
+    db: DbSession,
+    current: AuthenticatedUser,
+):
+    """
+    Add an internal note to a conversation.
+    
+    Internal notes are for agent collaboration and are NEVER visible to customers.
+    Supports @mentions of other agents (stored as UUIDs for future notification).
+    """
+    tenant_id = current.tenant.id
+    author_id = current.user.id
+
+    # Verify conversation exists and belongs to tenant
+    conv_result = await db.execute(
+        select(Conversation).where(
+            and_(
+                Conversation.id == conversation_id,
+                Conversation.tenant_id == tenant_id,
+            )
+        )
+    )
+    conv = conv_result.scalar_one_or_none()
+
+    if not conv:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    # Create the note
+    note = InternalNote(
+        conversation_id=conversation_id,
+        author_id=author_id,
+        content=data.content,
+        mentions=data.mentions or [],
+    )
+    db.add(note)
+    await db.commit()
+    await db.refresh(note)
+
+    # Load author relationship
+    author_result = await db.execute(
+        select(User).where(User.id == author_id)
+    )
+    author = author_result.scalar_one()
+
+    # Emit WebSocket event for real-time updates to other agents
+    await emit_internal_note(
+        tenant_id=tenant_id,
+        conversation_id=conversation_id,
+        note_data={
+            "id": str(note.id),
+            "conversation_id": str(note.conversation_id),
+            "author": {
+                "id": str(author.id),
+                "name": author.name,
+                "avatar_url": author.avatar_url,
+            },
+            "content": note.content,
+            "mentions": [str(m) for m in (note.mentions or [])],
+            "created_at": note.created_at.isoformat(),
+        }
+    )
+
+    return InternalNoteResponse(
+        id=note.id,
+        conversation_id=note.conversation_id,
+        author=NoteAuthor(
+            id=author.id,
+            name=author.name,
+            avatar_url=author.avatar_url,
+        ),
+        content=note.content,
+        mentions=note.mentions or [],
+        created_at=note.created_at,
+    )
+
+
+@router.delete(
+    "/{conversation_id}/notes/{note_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete internal note"
+)
+async def delete_internal_note(
+    conversation_id: UUID,
+    note_id: UUID,
+    db: DbSession,
+    current: AuthenticatedUser,
+):
+    """
+    Delete an internal note.
+    Only the note author or an admin can delete a note.
+    """
+    tenant_id = current.tenant.id
+    user_id = current.user.id
+    user_role = current.user.role
+
+    # Get the note
+    note_result = await db.execute(
+        select(InternalNote)
+        .join(Conversation)
+        .where(
+            and_(
+                InternalNote.id == note_id,
+                InternalNote.conversation_id == conversation_id,
+                Conversation.tenant_id == tenant_id,
+            )
+        )
+    )
+    note = note_result.scalar_one_or_none()
+
+    if not note:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found",
+        )
+
+    # Check permission: author or admin/owner
+    is_author = note.author_id == user_id
+    is_admin = user_role in ("admin", "owner") if isinstance(user_role, str) else user_role.value in ("admin", "owner")
+    
+    if not is_author and not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the note author or an admin can delete this note",
+        )
+
+    await db.delete(note)
+    await db.commit()
+
+    return None
+
+
+# ============================================================================
 # Legacy/Compatibility Endpoints
 # ============================================================================
 
@@ -555,7 +808,7 @@ async def update_conversation(
     Update conversation - redirects to specific endpoints.
     Use /status, /priority, or /assign for specific updates.
     """
-    return {"message": f"Use specific endpoints: /status, /priority, /assign"}
+    return {"message": "Use specific endpoints: /status, /priority, /assign"}
 
 
 @router.post("/{conversation_id}/close", response_model=ConversationDetail, summary="Close conversation")

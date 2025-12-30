@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { format } from 'date-fns';
-import { Send, RotateCcw, UserPlus, Loader2, Zap, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Send, RotateCcw, UserPlus, Loader2, StickyNote, Trash2, AlertCircle } from 'lucide-react';
 import { getAccessToken } from '@/lib/api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // ============================================
 // SVG ICONS - Inline for better control
@@ -44,6 +42,21 @@ interface Message {
   created_at: string;
 }
 
+interface NoteAuthor {
+  id: string;
+  name: string;
+  avatar_url?: string;
+}
+
+interface InternalNote {
+  id: string;
+  conversation_id: string;
+  author: NoteAuthor;
+  content: string;
+  mentions: string[];
+  created_at: string;
+}
+
 interface ConversationDetail {
   id: string;
   customer_name: string;
@@ -53,6 +66,7 @@ interface ConversationDetail {
   assigned_to: string | null;
   assigned_to_name: string | null;
   messages: Message[];
+  internal_notes?: InternalNote[];
   customer: {
     id: string;
     name: string;
@@ -64,77 +78,79 @@ interface ConversationDetail {
 interface ConversationPanelProps {
   conversation: ConversationDetail;
   currentUserId?: string;
+  currentUserRole?: string;
   onTakeOver: () => void;
   onReturnToAI: () => void;
-  onSendMessage: (message: string) => Promise<void>;
+  onSendMessage: (content: string) => void;
   onStatusChange: (status: string) => void;
   loading: boolean;
 }
 
-interface CannedResponse {
-  id: string;
-  title: string;
-  shortcut: string | null;
-  content: string;
-  category: string | null;
-}
+type ActiveTab = 'messages' | 'notes';
 
 // ============================================
 // MESSAGE BUBBLE COMPONENT
 // ============================================
 
-interface MessageBubbleProps {
+function MessageBubble({ 
+  message, 
+  isFromCurrentAgent 
+}: { 
   message: Message;
   isFromCurrentAgent: boolean;
-}
-
-function MessageBubble({ message, isFromCurrentAgent }: MessageBubbleProps) {
+}) {
   const isCustomer = message.sender_type === 'customer';
   const isAI = message.sender_type === 'ai';
   const isAgent = message.sender_type === 'agent';
-  
-  const alignRight = isCustomer;
-  
-  const getSenderInfo = () => {
-    if (isCustomer) {
-      return {
-        label: 'Customer',
-        icon: <MessageCircleIcon className="w-3 h-3" />,
-        color: 'text-amber-400',
-        iconBg: 'bg-amber-500/20',
-      };
-    }
-    if (isAI) {
-      return {
-        label: 'AI Assistant',
-        icon: <SparklesIcon className="w-3 h-3" />,
-        color: 'text-blue-400',
-        iconBg: 'bg-blue-500/20',
-      };
-    }
-    return {
-      label: message.sender_name || 'Agent',
-      icon: <UserIcon className="w-3 h-3" />,
-      color: 'text-amber-400',
-      iconBg: 'bg-amber-500/20',
-    };
-  };
+
+  const alignRight = isAgent || (isFromCurrentAgent && isAgent);
 
   const getBubbleStyles = () => {
     if (isCustomer) {
-      return 'bg-gradient-to-br from-amber-600 to-amber-700 text-white';
+      return 'bg-neutral-800 text-neutral-100 border border-neutral-700/50';
     }
     if (isAI) {
-      return 'bg-blue-500/15 border border-blue-500/20 text-neutral-100';
+      return 'bg-blue-950/40 text-blue-100 border border-blue-800/30';
     }
-    return 'bg-amber-500/15 border border-amber-500/20 text-neutral-100';
+    if (isAgent) {
+      return 'bg-amber-600/20 text-amber-50 border border-amber-600/30';
+    }
+    return 'bg-neutral-800 text-neutral-100';
+  };
+
+  const getSenderInfo = () => {
+    if (isCustomer) {
+      return { 
+        label: 'Customer', 
+        icon: <MessageCircleIcon className="w-3.5 h-3.5" />,
+        color: 'text-neutral-400',
+        iconBg: 'bg-neutral-700'
+      };
+    }
+    if (isAI) {
+      return { 
+        label: 'AI Assistant', 
+        icon: <SparklesIcon className="w-3.5 h-3.5" />,
+        color: 'text-blue-400',
+        iconBg: 'bg-blue-900/50'
+      };
+    }
+    if (isAgent) {
+      return { 
+        label: message.sender_name || 'Agent', 
+        icon: <UserIcon className="w-3.5 h-3.5" />,
+        color: 'text-amber-400',
+        iconBg: 'bg-amber-900/50'
+      };
+    }
+    return { label: 'Unknown', icon: null, color: 'text-neutral-400', iconBg: 'bg-neutral-700' };
   };
 
   const senderInfo = getSenderInfo();
 
   return (
-    <div className={`flex flex-col ${alignRight ? 'items-end' : 'items-start'} mb-4`}>
-      <div className={`flex items-center gap-2 mb-1 ${alignRight ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex flex-col ${alignRight ? 'items-end' : 'items-start'} max-w-[75%] ${alignRight ? 'ml-auto' : 'mr-auto'}`}>
+      <div className={`flex items-center gap-2 mb-1.5 ${alignRight ? 'flex-row-reverse' : 'flex-row'}`}>
         <div className={`w-5 h-5 rounded-md flex items-center justify-center ${senderInfo.iconBg}`}>
           <span className={senderInfo.color}>{senderInfo.icon}</span>
         </div>
@@ -147,7 +163,7 @@ function MessageBubble({ message, isFromCurrentAgent }: MessageBubbleProps) {
       </div>
       
       <div 
-        className={`p-3 rounded-2xl max-w-[80%] ${getBubbleStyles()} ${alignRight ? 'rounded-br-md' : 'rounded-bl-md'}`}
+        className={`p-3 rounded-2xl ${getBubbleStyles()} ${alignRight ? 'rounded-br-md' : 'rounded-bl-md'}`}
       >
         <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
       </div>
@@ -156,144 +172,227 @@ function MessageBubble({ message, isFromCurrentAgent }: MessageBubbleProps) {
 }
 
 // ============================================
-// CANNED RESPONSE PICKER COMPONENT
+// INTERNAL NOTES PANEL COMPONENT
 // ============================================
 
-interface CannedResponsePickerProps {
-  searchTerm: string;
-  onSelect: (response: CannedResponse) => void;
-  onClose: () => void;
+function InternalNotesPanel({
+  conversationId,
+  currentUserId,
+  currentUserRole,
+  initialNotes = [],
+}: {
   conversationId: string;
-}
+  currentUserId: string;
+  currentUserRole: string;
+  initialNotes?: InternalNote[];
+}) {
+  const [notes, setNotes] = useState<InternalNote[]>(initialNotes);
+  const [newNote, setNewNote] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const notesEndRef = useRef<HTMLDivElement>(null);
 
-function CannedResponsePicker({ searchTerm, onSelect, onClose, conversationId }: CannedResponsePickerProps) {
-  const [responses, setResponses] = useState<CannedResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const listRef = useRef<HTMLDivElement>(null);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  
+  const getAuthHeaders = () => {
+    const token = getAccessToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+  };
 
-  // Fetch canned responses
+  // Only reset notes when switching to a different conversation
   useEffect(() => {
-    const fetchResponses = async () => {
-      try {
-        const token = getAccessToken();
-        const url = searchTerm 
-          ? `${API_URL}/api/v1/canned-responses/search?q=${encodeURIComponent(searchTerm)}`
-          : `${API_URL}/api/v1/canned-responses`;
-        
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setResponses(data.responses || []);
+    setNotes(initialNotes);
+  }, [conversationId]); // Remove initialNotes from deps - only reset on conversation change
+
+  // Scroll to bottom when notes change
+  useEffect(() => {
+    notesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [notes]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newNote.trim() || isSending) return;
+
+    try {
+      setIsSending(true);
+      setError(null);
+
+      const response = await fetch(
+        `${API_URL}/api/v1/conversations/${conversationId}/notes`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            content: newNote.trim(),
+            mentions: [],
+          }),
         }
-      } catch (err) {
-        console.error('Failed to fetch canned responses:', err);
-      } finally {
-        setLoading(false);
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to create note');
       }
-    };
 
-    fetchResponses();
-  }, [searchTerm]);
+      const createdNote = await response.json();
+      setNotes((prev) => [...prev, createdNote]);
+      setNewNote('');
+    } catch (err) {
+      setError('Failed to add note');
+      console.error('Error creating note:', err);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
-  // Reset selection when responses change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [responses]);
+  const handleDelete = async (noteId: string) => {
+    if (!confirm('Delete this note?')) return;
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, responses.length - 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
-      } else if (e.key === 'Enter' && responses.length > 0) {
-        e.preventDefault();
-        onSelect(responses[selectedIndex]);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
+    try {
+      const response = await fetch(
+        `${API_URL}/api/v1/conversations/${conversationId}/notes/${noteId}`,
+        {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error('Failed to delete note');
       }
-    };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [responses, selectedIndex, onSelect, onClose]);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch (err) {
+      setError('Failed to delete note');
+      console.error('Error deleting note:', err);
+    }
+  };
 
-  // Scroll selected item into view
-  useEffect(() => {
-    const selectedEl = listRef.current?.children[selectedIndex] as HTMLElement;
-    selectedEl?.scrollIntoView({ block: 'nearest' });
-  }, [selectedIndex]);
-
-  if (loading) {
+  const canDelete = (note: InternalNote) => {
     return (
-      <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1A1915] border border-neutral-700 rounded-lg shadow-xl p-4">
-        <div className="flex items-center justify-center gap-2 text-neutral-400">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-sm">Loading responses...</span>
-        </div>
-      </div>
+      note.author.id === currentUserId ||
+      currentUserRole === 'admin' ||
+      currentUserRole === 'owner'
     );
-  }
+  };
 
-  if (responses.length === 0) {
-    return (
-      <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1A1915] border border-neutral-700 rounded-lg shadow-xl p-4">
-        <p className="text-sm text-neutral-500 text-center">
-          No canned responses found for &quot;{searchTerm}&quot;
-        </p>
-      </div>
-    );
-  }
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
-    <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#1A1915] border border-neutral-700 rounded-lg shadow-xl overflow-hidden z-50">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-800 bg-neutral-800/50">
-        <div className="flex items-center gap-2 text-xs text-neutral-400">
-          <Zap size={12} className="text-amber-500" />
-          <span>Canned Responses</span>
-          <span className="text-neutral-600">• ↑↓ to navigate • Enter to select • Esc to close</span>
-        </div>
-        <button onClick={onClose} className="p-1 hover:bg-neutral-700 rounded">
-          <X size={14} className="text-neutral-500" />
-        </button>
-      </div>
-      
-      <div ref={listRef} className="max-h-64 overflow-y-auto">
-        {responses.map((response, index) => (
-          <button
-            key={response.id}
-            onClick={() => onSelect(response)}
-            className={`w-full px-3 py-2 text-left transition-colors ${
-              index === selectedIndex 
-                ? 'bg-amber-500/20 border-l-2 border-amber-500' 
-                : 'hover:bg-neutral-800 border-l-2 border-transparent'
-            }`}
+    <div className="flex flex-col h-full">
+      {/* Error banner */}
+      {error && (
+        <div className="mx-4 mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+          <button 
+            onClick={() => setError(null)}
+            className="ml-auto text-red-400 hover:text-red-300"
           >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-sm text-white">{response.title}</span>
-              {response.shortcut && (
-                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 text-xs font-mono rounded">
-                  {response.shortcut}
-                </span>
-              )}
-              {response.category && (
-                <span className="px-1.5 py-0.5 bg-neutral-700 text-neutral-400 text-xs rounded">
-                  {response.category}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-neutral-500 line-clamp-1">{response.content}</p>
+            ×
           </button>
-        ))}
+        </div>
+      )}
+
+      {/* Notes list */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {notes.length === 0 ? (
+          <div className="text-center py-8 text-neutral-500 text-sm">
+            <StickyNote className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p>No internal notes yet</p>
+            <p className="text-xs mt-1">Add notes for team collaboration</p>
+          </div>
+        ) : (
+          notes.map((note) => (
+            <div
+              key={note.id}
+              className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 group"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {note.author.avatar_url ? (
+                    <img
+                      src={note.author.avatar_url}
+                      alt={note.author.name}
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-amber-600 flex items-center justify-center text-xs font-medium text-white">
+                      {getInitials(note.author.name)}
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-sm font-medium text-amber-400">
+                      {note.author.name}
+                    </span>
+                    <span className="text-xs text-neutral-500 ml-2">
+                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                </div>
+                
+                {canDelete(note) && (
+                  <button
+                    onClick={() => handleDelete(note.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-neutral-500 hover:text-red-400 transition-all"
+                    title="Delete note"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <p className="text-sm text-neutral-200 whitespace-pre-wrap">
+                {note.content}
+              </p>
+            </div>
+          ))
+        )}
+        <div ref={notesEndRef} />
       </div>
+
+      {/* New note input */}
+      <form onSubmit={handleSubmit} className="p-4 border-t border-neutral-800">
+        <div className="flex gap-2">
+          <textarea
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            placeholder="Add an internal note..."
+            className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 resize-none focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+            rows={2}
+            disabled={isSending}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                handleSubmit(e);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!newNote.trim() || isSending}
+            className="self-end px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-neutral-700 disabled:cursor-not-allowed rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            {isSending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-neutral-500 mt-2">
+          💡 Notes are only visible to your team. Press Ctrl+Enter to send.
+        </p>
+      </form>
     </div>
   );
 }
@@ -305,6 +404,7 @@ function CannedResponsePicker({ searchTerm, onSelect, onClose, conversationId }:
 export function ConversationPanel({
   conversation,
   currentUserId,
+  currentUserRole = 'agent',
   onTakeOver,
   onReturnToAI,
   onSendMessage,
@@ -313,10 +413,8 @@ export function ConversationPanel({
 }: ConversationPanelProps) {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [showCannedPicker, setShowCannedPicker] = useState(false);
-  const [cannedSearchTerm, setCannedSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('messages');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isAssignedToMe = conversation.assigned_to === currentUserId;
   const isAIHandled = conversation.ai_handled;
@@ -325,52 +423,10 @@ export function ConversationPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation.messages]);
 
-  // Detect shortcut trigger (typing /something)
+  // Reset to messages tab when conversation changes
   useEffect(() => {
-    const shortcutMatch = message.match(/\/(\w*)$/);
-    if (shortcutMatch) {
-      setShowCannedPicker(true);
-      setCannedSearchTerm(shortcutMatch[1] || '');
-    } else {
-      setShowCannedPicker(false);
-      setCannedSearchTerm('');
-    }
-  }, [message]);
-
-  // Handle selecting a canned response
-  const handleSelectCannedResponse = useCallback(async (response: CannedResponse) => {
-    try {
-      // Call the expand endpoint to get variable-substituted content
-      const token = getAccessToken();
-      const res = await fetch(
-        `${API_URL}/api/v1/canned-responses/${response.id}/expand?conversation_id=${conversation.id}`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      let expandedContent = response.content;
-      if (res.ok) {
-        const data = await res.json();
-        expandedContent = data.expanded;
-      }
-
-      // Replace the shortcut trigger with the expanded content
-      const newMessage = message.replace(/\/\w*$/, expandedContent);
-      setMessage(newMessage);
-      setShowCannedPicker(false);
-      
-      // Focus back on textarea
-      textareaRef.current?.focus();
-    } catch (err) {
-      console.error('Failed to expand canned response:', err);
-      // Fallback to raw content
-      const newMessage = message.replace(/\/\w*$/, response.content);
-      setMessage(newMessage);
-      setShowCannedPicker(false);
-    }
-  }, [message, conversation.id]);
+    setActiveTab('messages');
+  }, [conversation.id]);
 
   const handleSend = async () => {
     if (!message.trim() || sending) return;
@@ -385,11 +441,6 @@ export function ConversationPanel({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Don't send if canned picker is open (let it handle Enter)
-    if (showCannedPicker) {
-      return;
-    }
-    
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -424,13 +475,22 @@ export function ConversationPanel({
             </span>
           </div>
           <div>
-            <h2 className="font-medium text-white">{conversation.customer_name}</h2>
+            <h2 className="font-semibold text-neutral-100">
+              {conversation.customer_name || 'Anonymous'}
+            </h2>
             <div className="flex items-center gap-2 mt-0.5">
               {getPriorityBadge()}
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                conversation.status === 'open' ? 'bg-emerald-500/20 text-emerald-400' :
+                conversation.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                'bg-neutral-500/20 text-neutral-400'
+              }`}>
+                {conversation.status}
+              </span>
               {isAIHandled && (
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 flex items-center gap-1">
                   <SparklesIcon className="w-3 h-3" />
-                  AI Handling
+                  AI
                 </span>
               )}
             </div>
@@ -441,7 +501,7 @@ export function ConversationPanel({
           {isAIHandled ? (
             <button
               onClick={onTakeOver}
-              className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-500 text-white rounded-lg flex items-center gap-2 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
               Take Over
@@ -449,7 +509,7 @@ export function ConversationPanel({
           ) : isAssignedToMe ? (
             <button
               onClick={onReturnToAI}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-lg flex items-center gap-2 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
               Return to AI
@@ -457,7 +517,7 @@ export function ConversationPanel({
           ) : (
             <button
               onClick={onTakeOver}
-              className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-500 text-white rounded-lg flex items-center gap-2 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
               Take Over
@@ -466,66 +526,65 @@ export function ConversationPanel({
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
-          </div>
-        ) : (
-          <>
-            {conversation.messages.map((msg) => (
-              <MessageBubble 
-                key={msg.id} 
-                message={msg}
-                isFromCurrentAgent={msg.sender_type === 'agent' && msg.sender_name === conversation.assigned_to_name}
-              />
-            ))}
-            <div ref={messagesEndRef} />
-          </>
-        )}
+      {/* Tab Bar */}
+      <div className="flex border-b border-neutral-800 flex-shrink-0">
+        <button
+          onClick={() => setActiveTab('messages')}
+          className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+            activeTab === 'messages'
+              ? 'text-amber-500 border-b-2 border-amber-500 -mb-px'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          Messages
+        </button>
+        <button
+          onClick={() => setActiveTab('notes')}
+          className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            activeTab === 'notes'
+              ? 'text-amber-500 border-b-2 border-amber-500 -mb-px'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          <StickyNote className="w-4 h-4" />
+          Notes
+        </button>
       </div>
 
-      {/* Input - Only show if assigned and not AI handled */}
-      {isAssignedToMe && !isAIHandled && (
-        <div className="bg-[#1E1C19] border-t border-neutral-800 p-4 flex-shrink-0">
-          <div className="relative">
-            {/* Canned Response Picker */}
-            {showCannedPicker && (
-              <CannedResponsePicker
-                searchTerm={cannedSearchTerm}
-                onSelect={handleSelectCannedResponse}
-                onClose={() => setShowCannedPicker(false)}
-                conversationId={conversation.id}
-              />
-            )}
-            
-            <div className="flex items-end gap-3">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={textareaRef}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message... (type / for quick responses)"
-                  rows={2}
-                  className="w-full px-4 py-3 bg-[#131210] border border-neutral-700 rounded-xl text-neutral-100 placeholder-neutral-500 resize-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all"
+      {/* Tab Content - Both mounted, toggle visibility */}
+      <div className={`flex-1 flex flex-col overflow-hidden ${activeTab === 'messages' ? '' : 'hidden'}`}>
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {conversation.messages.map((msg) => (
+                <MessageBubble 
+                  key={msg.id} 
+                  message={msg}
+                  isFromCurrentAgent={msg.sender_type === 'agent' && msg.sender_name === conversation.assigned_to_name}
                 />
-                {!showCannedPicker && (
-                  <div className="absolute right-3 bottom-3">
-                    <button
-                      onClick={() => {
-                        setMessage(message + '/');
-                        textareaRef.current?.focus();
-                      }}
-                      className="p-1.5 text-neutral-500 hover:text-amber-500 hover:bg-amber-500/10 rounded transition-colors"
-                      title="Insert canned response"
-                    >
-                      <Zap size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Input - Only show if assigned and not AI handled */}
+        {isAssignedToMe && !isAIHandled && (
+          <div className="bg-[#1E1C19] border-t border-neutral-800 p-4 flex-shrink-0">
+            <div className="flex items-end gap-3">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message..."
+                rows={2}
+                className="flex-1 px-4 py-3 bg-[#131210] border border-neutral-700 rounded-xl text-neutral-100 placeholder-neutral-500 resize-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all"
+              />
               <button
                 onClick={handleSend}
                 disabled={!message.trim() || sending}
@@ -539,32 +598,37 @@ export function ConversationPanel({
               </button>
             </div>
           </div>
-          
-          {/* Helper text */}
-          <p className="text-xs text-neutral-600 mt-2">
-            Press <kbd className="px-1 py-0.5 bg-neutral-800 rounded text-neutral-400">Enter</kbd> to send • <kbd className="px-1 py-0.5 bg-neutral-800 rounded text-neutral-400">Shift+Enter</kbd> for new line • Type <kbd className="px-1 py-0.5 bg-neutral-800 rounded text-neutral-400">/</kbd> for quick responses
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* AI Handled Notice */}
-      {isAIHandled && (
-        <div className="bg-blue-950/30 border-t border-blue-800/30 p-4 flex-shrink-0">
-          <div className="flex items-center justify-center gap-2 text-sm text-blue-400">
-            <SparklesIcon className="w-4 h-4" />
-            <span>This conversation is being handled by AI. Click <strong>Take Over</strong> to respond manually.</span>
+        {/* AI Handled Notice */}
+        {isAIHandled && (
+          <div className="bg-blue-950/30 border-t border-blue-800/30 p-4 flex-shrink-0">
+            <div className="flex items-center justify-center gap-2 text-sm text-blue-400">
+              <SparklesIcon className="w-4 h-4" />
+              <span>This conversation is being handled by AI. Click <strong>Take Over</strong> to respond manually.</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Not Assigned Notice */}
-      {!isAIHandled && !isAssignedToMe && (
-        <div className="bg-neutral-800/50 border-t border-neutral-700 p-4 flex-shrink-0">
-          <p className="text-sm text-neutral-400 text-center">
-            This conversation is assigned to another agent. Click <strong>Take Over</strong> to claim it.
-          </p>
-        </div>
-      )}
+        {/* Not Assigned Notice */}
+        {!isAIHandled && !isAssignedToMe && (
+          <div className="bg-neutral-800/50 border-t border-neutral-700 p-4 flex-shrink-0">
+            <p className="text-sm text-neutral-400 text-center">
+              This conversation is assigned to another agent. Click <strong>Take Over</strong> to claim it.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Notes Tab - Always mounted, toggle visibility */}
+      <div className={`flex-1 overflow-hidden ${activeTab === 'notes' ? '' : 'hidden'}`}>
+        <InternalNotesPanel
+          conversationId={conversation.id}
+          currentUserId={currentUserId || ''}
+          currentUserRole={currentUserRole}
+          initialNotes={conversation.internal_notes || []}
+        />
+      </div>
     </div>
   );
 }

@@ -152,6 +152,27 @@ async def emit_new_message(tenant_id: UUID, conversation_id: UUID, message_data:
     await sio.emit("new_message", payload, room=conversation_room)
 
 
+async def emit_internal_note(tenant_id: UUID, conversation_id: UUID, note_data: dict):
+    """
+    Emit when a new internal note is added to a conversation.
+    
+    IMPORTANT: Internal notes are ONLY emitted to the tenant room (agents),
+    NOT to the conversation room (where widget/customer might be listening).
+    
+    This ensures customers never see internal notes even via WebSocket.
+    """
+    tenant_room = f"tenant:{tenant_id}"
+    
+    payload = {
+        "conversation_id": str(conversation_id),
+        "note": note_data,
+    }
+    
+    # ONLY emit to tenant room - agents only, never to widget
+    logger.info(f"Emitting internal_note to tenant room {tenant_room}")
+    await sio.emit("internal_note", payload, room=tenant_room)
+
+
 async def emit_conversation_updated(tenant_id: UUID, conversation_id: UUID, update_data: dict):
     """
     Emit when a conversation is updated (status, assignment, etc.)

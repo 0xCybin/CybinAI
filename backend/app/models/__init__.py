@@ -1,4 +1,4 @@
-"""SQLAlchemy models for CybinAI."""
+"""SQLAlchemy models for MykoDesk."""
 
 from app.models.models import (
     UserRole,
@@ -11,6 +11,7 @@ from app.models.models import (
     Customer,
     Conversation,
     Message,
+    InternalNote,
     KBArticle,
     Integration,
     CannedResponse,
@@ -28,6 +29,7 @@ __all__ = [
     "Customer",
     "Conversation",
     "Message",
+    "InternalNote",
     "KBArticle",
     "Integration",
     "CannedResponse",
