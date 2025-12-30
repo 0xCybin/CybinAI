@@ -16,7 +16,8 @@ from app.api.v1.endpoints import (
     email,
     analytics,
     settings,
-    users,  # NEW - User/Agent Management
+    users,
+    canned_responses,  # NEW - Canned Responses
 )
 
 api_router = APIRouter()
@@ -35,7 +36,7 @@ api_router.include_router(
     tags=["Tenants"]
 )
 
-# User/Agent management (NEW)
+# User/Agent management
 api_router.include_router(
     users.router,
     tags=["Users"]
@@ -60,6 +61,13 @@ api_router.include_router(
     knowledge_base.router,
     prefix="/knowledge-base",
     tags=["Knowledge Base"]
+)
+
+# Canned responses (NEW)
+api_router.include_router(
+    canned_responses.router,
+    prefix="/canned-responses",
+    tags=["Canned Responses"]
 )
 
 # Public widget endpoints (for embedded chat)
