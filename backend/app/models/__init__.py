@@ -11,27 +11,37 @@ from app.models.models import (
     Customer,
     Conversation,
     Message,
-    InternalNote,
     KBArticle,
     Integration,
     CannedResponse,
+    InternalNote,
     AuditLog,
 )
 
+from app.models.tags import (
+    Tag,
+    ConversationTag,
+)
+
 __all__ = [
+    # Enums
     "UserRole",
     "ConversationStatus",
     "ConversationPriority",
     "ChannelType",
     "SenderType",
+    # Core models
     "Tenant",
     "User",
     "Customer",
     "Conversation",
     "Message",
-    "InternalNote",
     "KBArticle",
     "Integration",
     "CannedResponse",
+    "InternalNote",
     "AuditLog",
+    # Tags
+    "Tag",
+    "ConversationTag",
 ]

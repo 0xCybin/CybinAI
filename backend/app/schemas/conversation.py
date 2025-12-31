@@ -1,6 +1,6 @@
 """
 Conversation schemas for Agent Dashboard.
-Complete file: backend/app/schemas/conversation.py
+Updated to include tags support.
 """
 
 from datetime import datetime
@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
+from app.schemas.tags import TagBrief
 from app.schemas.internal_notes import InternalNoteResponse
 
 
@@ -67,6 +68,7 @@ class ConversationListItem(BaseModel):
     last_message_preview: Optional[str] = None
     last_message_at: Optional[datetime] = None
     message_count: int = 0
+    tags: List[TagBrief] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     
@@ -75,7 +77,7 @@ class ConversationListItem(BaseModel):
 
 
 class ConversationDetail(BaseModel):
-    """Full conversation detail with messages and internal notes."""
+    """Full conversation detail with messages."""
     id: UUID
     tenant_id: UUID
     customer: Optional[CustomerInfo] = None
@@ -89,6 +91,7 @@ class ConversationDetail(BaseModel):
     metadata: dict = Field(default_factory=dict)
     messages: List[MessageResponse] = Field(default_factory=list)
     internal_notes: List[InternalNoteResponse] = Field(default_factory=list)
+    tags: List[TagBrief] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     
@@ -113,7 +116,7 @@ class ConversationPriorityUpdate(BaseModel):
 
 
 # ============================================================================
-# List Response schema
+# List Response schema (matches existing endpoint)
 # ============================================================================
 
 class ConversationListResponse(BaseModel):

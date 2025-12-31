@@ -13,7 +13,8 @@ import {
   Link2,
   LogOut,
   Inbox,
-  MessageSquareText,
+  MessageCircle,
+  Tag,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -127,9 +128,15 @@ export default function DashboardLayout({
           />
           <NavItem
             href="/admin/canned-responses"
-            icon={<MessageSquareText size={20} />}
+            icon={<MessageCircle size={20} />}
             label="Canned Responses"
             isActive={isActive('/admin/canned-responses')}
+          />
+          <NavItem
+            href="/admin/tags"
+            icon={<Tag size={20} />}
+            label="Tags"
+            isActive={isActive('/admin/tags')}
           />
           <NavItem
             href="/admin/integrations"

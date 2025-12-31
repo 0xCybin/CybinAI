@@ -1,9 +1,6 @@
 """
-Internal Notes Schemas
-NEW FILE: backend/app/schemas/internal_notes.py
-
-Pydantic schemas for internal notes - private agent collaboration
-that is NEVER visible to customers.
+Internal Notes Pydantic Schemas
+For API request/response validation.
 """
 
 from datetime import datetime
@@ -14,28 +11,33 @@ from pydantic import BaseModel, Field
 
 
 # =============================================================================
-# Author Info (embedded in note responses)
+# Embedded Schemas
 # =============================================================================
 
 class NoteAuthor(BaseModel):
-    """Author information for display in notes."""
+    """Author info embedded in note response."""
     id: UUID
     name: str
+    email: Optional[str] = None
     avatar_url: Optional[str] = None
-
+    
     class Config:
         from_attributes = True
 
 
 # =============================================================================
-# Internal Note Schemas
+# Request Schemas
 # =============================================================================
 
 class InternalNoteCreate(BaseModel):
-    """Schema for creating an internal note."""
+    """Schema for creating a new internal note."""
     content: str = Field(..., min_length=1, max_length=10000)
-    mentions: List[UUID] = Field(default_factory=list)
+    mentions: Optional[List[UUID]] = Field(default_factory=list)
 
+
+# =============================================================================
+# Response Schemas
+# =============================================================================
 
 class InternalNoteResponse(BaseModel):
     """Internal note response for API."""
@@ -45,12 +47,12 @@ class InternalNoteResponse(BaseModel):
     content: str
     mentions: List[UUID] = Field(default_factory=list)
     created_at: datetime
-
+    
     class Config:
         from_attributes = True
 
 
 class InternalNoteListResponse(BaseModel):
-    """List of internal notes for a conversation."""
-    items: List[InternalNoteResponse]
+    """List of internal notes."""
+    notes: List[InternalNoteResponse]
     total: int
