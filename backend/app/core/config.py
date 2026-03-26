@@ -62,6 +62,7 @@ class Settings(BaseSettings):
 
     # Anthropic
     ANTHROPIC_API_KEY: Optional[str] = None
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-6-20250514"
 
     # AI behavior settings
     AI_MAX_TOKENS: int = 500

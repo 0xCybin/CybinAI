@@ -2,8 +2,10 @@
 LLM Provider Abstraction Layer
 
 Supports multiple LLM backends with easy switching via configuration.
-Currently implemented: DeepSeek, OpenAI
-Future: Anthropic, local models (Ollama)
+Implemented: DeepSeek, OpenAI, Anthropic (Claude)
+Future: local models (Ollama)
+
+Switch providers by setting LLM_PROVIDER env var to: deepseek, openai, or anthropic
 """
 
 from app.services.llm.base import (

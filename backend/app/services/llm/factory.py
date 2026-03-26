@@ -62,13 +62,11 @@ def _register_all_providers():
     """Register all available providers."""
     from app.services.llm.deepseek import DeepSeekProvider
     from app.services.llm.openai import OpenAIProvider
-    
+    from app.services.llm.anthropic import AnthropicProvider
+
     register_provider("deepseek", DeepSeekProvider)
     register_provider("openai", OpenAIProvider)
-    
-    # Future providers:
-    # register_provider("anthropic", AnthropicProvider)
-    # register_provider("ollama", OllamaProvider)
+    register_provider("anthropic", AnthropicProvider)
 
 
 def get_available_providers() -> list[str]:
