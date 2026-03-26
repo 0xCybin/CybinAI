@@ -82,7 +82,7 @@ export default function ChannelSetup({ onNext, onBack }: ChannelSetupProps) {
               ${channel.disabled
                 ? "bg-zinc-800/50 border-zinc-700/50 opacity-60"
                 : channel.enabled
-                ? "bg-zinc-800 border-blue-500/50"
+                ? "bg-zinc-800 border-amber-500/50"
                 : "bg-zinc-800 border-zinc-700"
               }
             `}
@@ -105,7 +105,7 @@ export default function ChannelSetup({ onNext, onBack }: ChannelSetupProps) {
               disabled={channel.disabled}
               className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors focus:outline-none
                 ${channel.disabled ? "cursor-not-allowed" : "cursor-pointer"}
-                ${channel.enabled ? "bg-blue-600" : "bg-zinc-600"}
+                ${channel.enabled ? "bg-amber-500" : "bg-zinc-600"}
               `}
               role="switch"
               aria-checked={channel.enabled}
@@ -130,7 +130,7 @@ export default function ChannelSetup({ onNext, onBack }: ChannelSetupProps) {
         </button>
         <button
           type="submit"
-          className="flex-1 min-h-[48px] bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+          className="flex-1 min-h-[48px] bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-amber-600/20"
         >
           Next: Test Your AI
         </button>

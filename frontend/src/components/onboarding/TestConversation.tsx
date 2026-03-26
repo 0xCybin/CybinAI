@@ -66,7 +66,7 @@ export default function TestConversation({ onNext, onBack, businessName }: TestC
               <div
                 className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
                   ${msg.role === "user"
-                    ? "bg-blue-600 text-white rounded-br-sm"
+                    ? "bg-amber-600 text-white rounded-br-sm"
                     : "bg-zinc-700 text-zinc-100 rounded-bl-sm"
                   }
                 `}
@@ -89,12 +89,12 @@ export default function TestConversation({ onNext, onBack, businessName }: TestC
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a customer question..."
-            className="flex-1 min-h-[44px] px-4 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm"
+            className="flex-1 min-h-[44px] px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
           />
           <button
             type="submit"
             disabled={!input.trim() || loading}
-            className="min-h-[44px] px-5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors text-sm"
+            className="min-h-[44px] px-5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors text-sm"
           >
             Send
           </button>
@@ -112,7 +112,7 @@ export default function TestConversation({ onNext, onBack, businessName }: TestC
         <button
           type="button"
           onClick={onNext}
-          className="flex-1 min-h-[48px] bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+          className="flex-1 min-h-[48px] bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-amber-600/20"
         >
           Looks good, continue
         </button>

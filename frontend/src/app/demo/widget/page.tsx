@@ -13,7 +13,6 @@ export default function WidgetDemoPage() {
       <header style={pageStyles.header}>
         <div style={pageStyles.headerInner}>
           <div style={pageStyles.logo}>
-            <span style={pageStyles.logoIcon}>❄️</span>
             <span style={pageStyles.logoText}>ACME HVAC</span>
           </div>
           <nav style={pageStyles.nav}>
@@ -47,13 +46,12 @@ export default function WidgetDemoPage() {
           <h2 style={pageStyles.sectionTitle}>Our Services</h2>
           <div style={pageStyles.servicesGrid}>
             {[
-              { icon: '❄️', title: 'AC Repair', desc: 'Fast cooling system repairs' },
-              { icon: '🔥', title: 'Heating', desc: 'Furnace & heat pump service' },
-              { icon: '🔧', title: 'Maintenance', desc: 'Preventive tune-ups' },
-              { icon: '🏠', title: 'Installation', desc: 'New system installation' },
+              { title: 'AC Repair', desc: 'Fast cooling system repairs for all makes and models' },
+              { title: 'Heating', desc: 'Furnace and heat pump installation and service' },
+              { title: 'Maintenance', desc: 'Preventive tune-ups to keep your system running' },
+              { title: 'Installation', desc: 'New HVAC system installation with warranty' },
             ].map((service, i) => (
               <div key={i} style={pageStyles.serviceCard}>
-                <span style={pageStyles.serviceIcon}>{service.icon}</span>
                 <h3 style={pageStyles.serviceTitle}>{service.title}</h3>
                 <p style={pageStyles.serviceDesc}>{service.desc}</p>
               </div>
@@ -66,15 +64,15 @@ export default function WidgetDemoPage() {
           <div style={pageStyles.demoBannerInner}>
             <span style={pageStyles.demoBadge}>DEMO MODE</span>
             <p style={pageStyles.demoText}>
-              This is a simulated HVAC business website. Click the chat bubble in the 
-              bottom-right corner to test the AI-powered customer service widget.
+              This is how your customers will see the chat widget on your website.
+              Click the chat button in the bottom-right corner to try it out.
             </p>
           </div>
         </section>
       </main>
 
       <footer style={pageStyles.footer}>
-        <p>© 2024 ACME HVAC (Demo) • Powered by MykoDesk</p>
+        <p>ACME HVAC (Demo) -- Powered by MykoDesk</p>
       </footer>
 
       {/* The Chat Widget */}
@@ -87,14 +85,14 @@ export default function WidgetDemoPage() {
 const pageStyles: { [key: string]: React.CSSProperties } = {
   container: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #1A1915 0%, #0F0E0C 100%)',
-    fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
+    background: '#09090b',
+    fontFamily: "system-ui, -apple-system, sans-serif",
     color: '#E5E5E5',
   },
   header: {
-    background: 'rgba(19, 18, 16, 0.95)',
+    background: 'rgba(9, 9, 11, 0.95)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
     padding: '16px 24px',
     position: 'sticky' as const,
     top: 0,
@@ -111,9 +109,6 @@ const pageStyles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-  },
-  logoIcon: {
-    fontSize: '28px',
   },
   logoText: {
     fontSize: '20px',
@@ -213,17 +208,12 @@ const pageStyles: { [key: string]: React.CSSProperties } = {
     gap: '24px',
   },
   serviceCard: {
-    background: '#232220',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
+    background: '#18181b',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
     borderRadius: '16px',
     padding: '32px 24px',
     textAlign: 'center' as const,
     transition: 'all 0.2s ease',
-  },
-  serviceIcon: {
-    fontSize: '40px',
-    display: 'block',
-    marginBottom: '16px',
   },
   serviceTitle: {
     fontSize: '18px',
@@ -235,11 +225,12 @@ const pageStyles: { [key: string]: React.CSSProperties } = {
     fontSize: '14px',
     color: '#A3A3A3',
     margin: 0,
+    lineHeight: 1.5,
   },
   demoBanner: {
     margin: '40px 0',
     padding: '24px',
-    background: 'rgba(217, 119, 6, 0.1)',
+    background: 'rgba(217, 119, 6, 0.08)',
     border: '1px solid rgba(217, 119, 6, 0.2)',
     borderRadius: '12px',
   },
@@ -266,8 +257,8 @@ const pageStyles: { [key: string]: React.CSSProperties } = {
     textAlign: 'center' as const,
   },
   footer: {
-    background: '#131210',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    background: '#09090b',
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
     padding: '24px',
     textAlign: 'center' as const,
     color: '#737373',

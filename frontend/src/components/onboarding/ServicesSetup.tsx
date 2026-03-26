@@ -77,7 +77,7 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
                   value={service.name}
                   onChange={(e) => update(i, "name", e.target.value)}
                   placeholder="e.g. Oil Change"
-                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm"
+                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
                 />
               </div>
               <button
@@ -108,7 +108,7 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
                   value={service.price_min}
                   onChange={(e) => update(i, "price_min", e.target.value)}
                   placeholder="0"
-                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm"
+                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
                 />
               </div>
               <div className="flex-1">
@@ -118,7 +118,7 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
                   value={service.price_max}
                   onChange={(e) => update(i, "price_max", e.target.value)}
                   placeholder="0"
-                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm"
+                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
                 />
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
         </button>
         <button
           type="submit"
-          className="flex-1 min-h-[48px] bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+          className="flex-1 min-h-[48px] bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-amber-600/20"
         >
           Next: FAQs
         </button>

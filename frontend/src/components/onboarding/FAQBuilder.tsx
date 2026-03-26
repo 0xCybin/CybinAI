@@ -68,7 +68,7 @@ export default function FAQBuilder({ onNext, onBack, defaults }: FAQBuilderProps
                   value={faq.question}
                   onChange={(e) => update(i, "question", e.target.value)}
                   placeholder="e.g. Do you offer same-day service?"
-                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm"
+                  className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
                 />
               </div>
               <button
@@ -88,7 +88,7 @@ export default function FAQBuilder({ onNext, onBack, defaults }: FAQBuilderProps
                 onChange={(e) => update(i, "answer", e.target.value)}
                 placeholder="e.g. Yes, we offer same-day appointments based on availability. Call us to check!"
                 rows={3}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm resize-none"
+                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm resize-none transition-colors"
               />
             </div>
           </div>
@@ -113,7 +113,7 @@ export default function FAQBuilder({ onNext, onBack, defaults }: FAQBuilderProps
         </button>
         <button
           type="submit"
-          className="flex-1 min-h-[48px] bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+          className="flex-1 min-h-[48px] bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-amber-600/20"
         >
           Next: Channels
         </button>

@@ -57,42 +57,36 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
     onNext(form);
   }
 
-  function field(id: keyof typeof form, label: string, type = "text", optional = false) {
-    return (
-      <div>
-        <label htmlFor={id} className="block text-sm font-medium text-zinc-300 mb-1">
-          {label} {optional && <span className="text-zinc-500">(optional)</span>}
-        </label>
-        <input
-          id={id}
-          type={type}
-          value={form[id]}
-          onChange={(e) => setForm({ ...form, [id]: e.target.value })}
-          className="w-full min-h-[48px] px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500"
-        />
-        {errors[id] && <p className="text-red-400 text-xs mt-1">{errors[id]}</p>}
-      </div>
-    );
-  }
+  const inputClasses = "w-full min-h-[48px] px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-colors";
+  const labelClasses = "block text-sm font-medium text-zinc-300 mb-1.5";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-white">Tell us about your business</h2>
+        <h2 className="text-2xl font-bold text-white">Tell us about your business</h2>
         <p className="text-zinc-400 mt-1">This helps your AI introduce itself correctly to customers.</p>
       </div>
 
-      {field("business_name", "Business Name")}
+      <div>
+        <label htmlFor="business_name" className={labelClasses}>Business Name</label>
+        <input
+          id="business_name"
+          type="text"
+          value={form.business_name}
+          onChange={(e) => setForm({ ...form, business_name: e.target.value })}
+          placeholder="e.g. Mike's HVAC Services"
+          className={inputClasses}
+        />
+        {errors.business_name && <p className="text-red-400 text-xs mt-1">{errors.business_name}</p>}
+      </div>
 
       <div>
-        <label htmlFor="industry" className="block text-sm font-medium text-zinc-300 mb-1">
-          Industry
-        </label>
+        <label htmlFor="industry" className={labelClasses}>Industry</label>
         <select
           id="industry"
           value={form.industry}
           onChange={(e) => setForm({ ...form, industry: e.target.value })}
-          className="w-full min-h-[48px] px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+          className={inputClasses}
         >
           <option value="">Select your industry</option>
           {INDUSTRIES.map((ind) => (
@@ -102,19 +96,53 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
         {errors.industry && <p className="text-red-400 text-xs mt-1">{errors.industry}</p>}
       </div>
 
-      {field("phone", "Phone Number")}
-      {field("address", "Business Address")}
-      {field("website", "Website", "text", true)}
+      <div>
+        <label htmlFor="phone" className={labelClasses}>Phone Number</label>
+        <input
+          id="phone"
+          type="text"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          placeholder="(555) 123-4567"
+          className={inputClasses}
+        />
+        {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+      </div>
 
       <div>
-        <label htmlFor="timezone" className="block text-sm font-medium text-zinc-300 mb-1">
-          Timezone
+        <label htmlFor="address" className={labelClasses}>Business Address</label>
+        <input
+          id="address"
+          type="text"
+          value={form.address}
+          onChange={(e) => setForm({ ...form, address: e.target.value })}
+          placeholder="123 Main St, Anytown, TX 75001"
+          className={inputClasses}
+        />
+        {errors.address && <p className="text-red-400 text-xs mt-1">{errors.address}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="website" className={labelClasses}>
+          Website <span className="text-zinc-600">(optional)</span>
         </label>
+        <input
+          id="website"
+          type="text"
+          value={form.website}
+          onChange={(e) => setForm({ ...form, website: e.target.value })}
+          placeholder="https://www.yourbusiness.com"
+          className={inputClasses}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="timezone" className={labelClasses}>Timezone</label>
         <select
           id="timezone"
           value={form.timezone}
           onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-          className="w-full min-h-[48px] px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+          className={inputClasses}
         >
           {TIMEZONES.map((tz) => (
             <option key={tz} value={tz}>{tz}</option>
@@ -125,9 +153,9 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
       <div className="pt-4">
         <button
           type="submit"
-          className="w-full min-h-[48px] bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors"
+          className="w-full min-h-[48px] bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-amber-600/20"
         >
-          Next: Services &amp; Pricing
+          Next: Services & Pricing
         </button>
       </div>
     </form>

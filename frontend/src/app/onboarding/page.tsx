@@ -108,11 +108,11 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-white">
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Set up your AI assistant</h1>
-          <p className="text-zinc-400 mt-1">Takes about 5 minutes. You can edit everything later.</p>
+    <div className="min-h-screen bg-zinc-950 text-white">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <div className="mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Set up your AI assistant</h1>
+          <p className="text-zinc-400 mt-2">Takes about 5 minutes. You can edit everything later.</p>
         </div>
 
         <OnboardingProgress currentStep={step} />
@@ -129,7 +129,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6 sm:p-8">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 sm:p-8 transition-all">
           {step === 1 && (
             <BusinessBasics onNext={handleBusinessBasics} />
           )}
