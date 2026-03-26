@@ -2,6 +2,8 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import { Bot, User, Loader2 } from 'lucide-react';
+import { ChannelIcon } from '../inbox/ChannelIcon';
+import { ConversationStatusBadge } from '../dashboard/ConversationStatusBadge';
 
 export interface Conversation {
   id: string;
@@ -60,9 +62,10 @@ export function ConversationList({ conversations, selectedId, onSelect, loading 
           }`}
         >
           <div className="flex items-start justify-between mb-1">
-            <span className={`font-medium text-sm ${
+            <span className={`font-medium text-sm flex items-center gap-1.5 ${
               selectedId === conv.id ? 'text-amber-400' : 'text-neutral-200'
             }`}>
+              <ChannelIcon channel={conv.channel as "chat" | "email" | "sms" | "phone"} size={14} />
               {conv.customer_name}
             </span>
             <span className="text-xs text-neutral-500">
@@ -79,7 +82,10 @@ export function ConversationList({ conversations, selectedId, onSelect, loading 
           
           <div className="flex items-center gap-2">
             {/* Status Badge */}
-            <StatusBadge status={conv.status} />
+            <ConversationStatusBadge
+              status={conv.status as "open" | "pending" | "resolved" | "closed"}
+              aiHandled={conv.ai_handled}
+            />
             
             {/* Priority Badge */}
             {conv.priority !== 'normal' && (

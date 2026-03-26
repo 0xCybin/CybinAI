@@ -5,6 +5,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Send, RotateCcw, UserPlus, Loader2, StickyNote, Trash2, AlertCircle } from 'lucide-react';
 import { getAccessToken } from '@/lib/api';
 import TagPicker, { TagType, TagDisplay } from './TagPicker';
+import { AIConfidenceBadge } from '../dashboard/AIConfidenceBadge';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -43,6 +44,8 @@ interface Message {
   sender_type: 'customer' | 'ai' | 'agent';
   sender_name: string | null;
   created_at: string;
+  confidence_score?: number | null;
+  ai_metadata?: { confidence_score?: number | null };
 }
 
 interface NoteAuthor {
@@ -174,11 +177,27 @@ function MessageBubble({
         </span>
       </div>
       
-      <div 
+      <div
         className={`p-3 rounded-2xl ${getBubbleStyles()} ${alignRight ? 'rounded-br-md' : 'rounded-bl-md'}`}
       >
         <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
       </div>
+      {isAI && (
+        <div className="mt-1">
+          <AIConfidenceBadge
+            score={message.confidence_score ?? message.ai_metadata?.confidence_score ?? null}
+            level={
+              (message.confidence_score ?? message.ai_metadata?.confidence_score) != null
+                ? (message.confidence_score ?? message.ai_metadata?.confidence_score)! >= 0.8
+                  ? "high"
+                  : (message.confidence_score ?? message.ai_metadata?.confidence_score)! >= 0.5
+                  ? "medium"
+                  : "low"
+                : null
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
