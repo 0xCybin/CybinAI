@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
     tags,
     ai_capabilities,
     notifications,
+    onboarding,
 )
 
 api_router = APIRouter()
@@ -125,4 +126,11 @@ api_router.include_router(
 api_router.include_router(
     notifications.router,
     tags=["Notifications"]
+)
+
+# Onboarding wizard
+api_router.include_router(
+    onboarding.router,
+    prefix="/onboarding",
+    tags=["Onboarding"]
 )
