@@ -2,209 +2,101 @@
 
 import { useAuth, useRequireAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import {
-  MessageSquare,
-  Bot,
-  Clock,
-  ThumbsUp,
-  Inbox,
-  BookOpen,
-  Zap,
-  ArrowRight,
-  Loader2,
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { SummaryCard } from '@/components/dashboard/SummaryCard';
 
 export default function DashboardPage() {
   const { user, tenant, isLoading } = useAuth();
   const { isAuthenticated } = useRequireAuth();
 
-  // Show loading while checking auth
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#1A1915]">
-        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-zinc-900">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-zinc-900 min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-100">
+            <h1 className="text-2xl font-bold text-white">
               Welcome back, {user?.name?.split(' ')[0]}
             </h1>
-            <p className="text-neutral-400 mt-1">
+            <p className="text-zinc-400 mt-1">
               Here&apos;s what&apos;s happening with your customer service today.
             </p>
           </div>
           {tenant && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800/50 rounded-full border border-neutral-700">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-full border border-zinc-700">
               <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-              <span className="text-sm font-medium text-neutral-300">{tenant.name}</span>
+              <span className="text-sm font-medium text-zinc-300">{tenant.name}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard
-          icon={<MessageSquare className="w-5 h-5" />}
-          title="Active Conversations"
-          value="0"
-          subtitle="No active chats"
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <SummaryCard
+          title="Conversations Today"
+          value={0}
+          subtitle="across all channels"
           color="blue"
         />
-        <StatsCard
-          icon={<Bot className="w-5 h-5" />}
+        <SummaryCard
           title="AI Resolution Rate"
-          value="--"
-          subtitle="No data yet"
-          color="amber"
+          value="-- %"
+          subtitle="handled without human"
+          color="green"
         />
-        <StatsCard
-          icon={<Clock className="w-5 h-5" />}
+        <SummaryCard
           title="Avg Response Time"
-          value="--"
-          subtitle="No data yet"
-          color="emerald"
+          value="< 30s"
+          subtitle="target: under 30 seconds"
+          color="blue"
         />
-        <StatsCard
-          icon={<ThumbsUp className="w-5 h-5" />}
+        <SummaryCard
           title="Customer Satisfaction"
-          value="--"
-          subtitle="No data yet"
-          color="purple"
+          value="-- / 5"
+          subtitle="based on feedback"
+          color="green"
         />
+      </div>
+
+      {/* Needs Attention */}
+      <div className="bg-zinc-800 rounded-lg p-6 mb-8 border border-zinc-700">
+        <h2 className="text-lg font-semibold text-white mb-3">Needs Attention</h2>
+        <p className="text-zinc-300 text-sm">No conversations need attention right now.</p>
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-[#232220] rounded-xl border border-neutral-800 p-6 mb-8">
-        <h2 className="text-lg font-semibold text-neutral-100 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <QuickAction
+      <div className="bg-zinc-800 rounded-lg p-6 border border-zinc-700">
+        <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
+        <div className="flex flex-wrap gap-3">
+          <Link
             href="/agent"
-            icon={<Inbox className="w-6 h-6" />}
-            title="View Inbox"
-            description="Check customer conversations"
-            color="blue"
-          />
-          <QuickAction
-            href="/admin/knowledge-base"
-            icon={<BookOpen className="w-6 h-6" />}
-            title="Knowledge Base"
-            description="Manage AI training content"
-            color="amber"
-          />
-          <QuickAction
-            href="/demo/widget"
-            icon={<Zap className="w-6 h-6" />}
-            title="Test Widget"
-            description="Try the chat experience"
-            color="emerald"
-          />
-        </div>
-      </div>
-
-      {/* Getting Started */}
-      <div className="bg-gradient-to-br from-neutral-800 to-neutral-900 rounded-xl border border-neutral-700 p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-neutral-100 mb-2">Getting Started</h2>
-            <p className="text-neutral-400 text-sm mb-4 max-w-lg">
-              Your AI customer service platform is ready. Add knowledge base articles to train your AI, 
-              then embed the widget on your website to start helping customers automatically.
-            </p>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/admin/knowledge-base/new"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-sm font-medium text-white transition-colors"
-              >
-                Add Knowledge Article
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/demo/widget"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-sm font-medium text-neutral-200 transition-colors"
-              >
-                Preview Widget
-              </Link>
-            </div>
-          </div>
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium text-white transition-colors"
+          >
+            View Inbox
+          </Link>
+          <Link
+            href="/admin/knowledge-base/new"
+            className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm font-medium text-zinc-200 transition-colors"
+          >
+            Add FAQ
+          </Link>
+          <Link
+            href="/admin/settings"
+            className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm font-medium text-zinc-200 transition-colors"
+          >
+            Settings
+          </Link>
         </div>
       </div>
     </div>
-  );
-}
-
-function StatsCard({
-  icon,
-  title,
-  value,
-  subtitle,
-  color,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  subtitle: string;
-  color: 'blue' | 'amber' | 'emerald' | 'purple';
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-500/10 text-blue-400',
-    amber: 'bg-amber-500/10 text-amber-400',
-    emerald: 'bg-emerald-500/10 text-emerald-400',
-    purple: 'bg-purple-500/10 text-purple-400',
-  };
-
-  return (
-    <div className="bg-[#232220] rounded-xl border border-neutral-800 p-5">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
-          {icon}
-        </div>
-        <span className="text-sm font-medium text-neutral-400">{title}</span>
-      </div>
-      <p className="text-2xl font-bold text-neutral-100">{value}</p>
-      <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>
-    </div>
-  );
-}
-
-function QuickAction({
-  href,
-  icon,
-  title,
-  description,
-  color,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: 'blue' | 'amber' | 'emerald';
-}) {
-  const colorClasses = {
-    blue: 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20',
-    emerald: 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20',
-  };
-
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-4 p-4 rounded-xl border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/50 transition-all"
-    >
-      <div className={`p-3 rounded-xl transition-colors ${colorClasses[color]}`}>
-        {icon}
-      </div>
-      <div>
-        <h3 className="font-semibold text-neutral-200 group-hover:text-neutral-100">{title}</h3>
-        <p className="text-sm text-neutral-500">{description}</p>
-      </div>
-    </Link>
   );
 }
