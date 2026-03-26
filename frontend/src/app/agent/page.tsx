@@ -438,11 +438,36 @@ export default function AgentInboxPage() {
               onStatusChange={handleStatusChange}
               loading={loadingDetail}
             />
+          ) : conversations.length === 0 && !loadingList ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center max-w-sm px-6">
+                <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <svg className="w-7 h-7 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">No conversations yet</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+                  When customers reach out via chat, email, phone, or text, their conversations will appear here.
+                </p>
+                <Link
+                  href="/demo/widget"
+                  className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Test Your AI
+                </Link>
+                {isConnected && (
+                  <p className="text-xs text-emerald-400 mt-4">Real-time updates active</p>
+                )}
+              </div>
+            </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-neutral-500">
+            <div className="flex-1 flex items-center justify-center text-zinc-500">
               <div className="text-center">
-                <div className="text-4xl mb-3 opacity-50">💬</div>
-                <p>Select a conversation to view</p>
+                <svg className="w-8 h-8 text-zinc-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+                <p className="text-zinc-400">Select a conversation to view</p>
                 {isConnected && (
                   <p className="text-xs text-emerald-400 mt-2">Real-time updates active</p>
                 )}

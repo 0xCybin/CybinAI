@@ -9,10 +9,17 @@ interface SummaryCardProps {
 
 export function SummaryCard({ title, value, subtitle, trend, trendValue, color = "blue" }: SummaryCardProps) {
   const colors = {
-    green: "border-emerald-500/30",
-    yellow: "border-amber-500/30",
-    red: "border-red-500/30",
-    blue: "border-blue-500/30",
+    green: "border-emerald-500/20",
+    yellow: "border-amber-500/20",
+    red: "border-red-500/20",
+    blue: "border-blue-500/20",
+  };
+
+  const accentDots = {
+    green: "bg-emerald-500",
+    yellow: "bg-amber-500",
+    red: "bg-red-500",
+    blue: "bg-blue-500",
   };
 
   const trendColors = {
@@ -22,12 +29,15 @@ export function SummaryCard({ title, value, subtitle, trend, trendValue, color =
   };
 
   return (
-    <div className={`bg-zinc-800 rounded-lg p-4 border ${colors[color]}`}>
-      <p className="text-sm text-zinc-400">{title}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
-      {subtitle && <p className="text-xs text-zinc-500 mt-1">{subtitle}</p>}
+    <div className={`bg-zinc-900 rounded-xl p-5 border ${colors[color]} transition-colors hover:border-zinc-700`}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`w-1.5 h-1.5 rounded-full ${accentDots[color]}`} />
+        <p className="text-sm text-zinc-400">{title}</p>
+      </div>
+      <p className="text-3xl font-bold text-white">{value}</p>
+      {subtitle && <p className="text-xs text-zinc-500 mt-1.5">{subtitle}</p>}
       {trend && trendValue && (
-        <p className={`text-xs mt-1 ${trendColors[trend]}`}>
+        <p className={`text-xs mt-1.5 ${trendColors[trend]}`}>
           {trend === "up" ? "\u2191" : trend === "down" ? "\u2193" : "\u2192"} {trendValue}
         </p>
       )}
