@@ -20,5 +20,8 @@ CREATE INDEX IF NOT EXISTS idx_kb_embeddings_article ON kb_embeddings(article_id
 -- Add confidence_score to messages table
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS confidence_score FLOAT;
 
+-- ANN index for fast similarity search (required for production RAG queries)
+CREATE INDEX IF NOT EXISTS idx_kb_embeddings_embedding ON kb_embeddings USING hnsw (embedding vector_cosine_ops);
+
 -- Success
 DO $$ BEGIN RAISE NOTICE 'pgvector migration complete'; END $$;

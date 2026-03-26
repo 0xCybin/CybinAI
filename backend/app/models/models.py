@@ -246,7 +246,9 @@ class KBEmbedding(Base, TimestampMixin):
     article_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False, index=True)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[Optional[str]] = mapped_column(Text)  # Stored as text, converted to vector in queries
+    # Stored as Text in ORM; actual DB type is vector(1536).
+    # All vector operations use raw SQL with ::vector casts (see embedding_service.py).
+    embedding: Mapped[Optional[str]] = mapped_column(Text)
 
     # Relationships
     article: Mapped["KBArticle"] = relationship("KBArticle", backref="embeddings")
