@@ -20,6 +20,7 @@ from app.api.v1.endpoints import (
     canned_responses,
     tags,
     ai_capabilities,
+    notifications,
 )
 
 api_router = APIRouter()
@@ -118,4 +119,10 @@ api_router.include_router(
     ai_capabilities.router,
     prefix="/ai-capabilities",
     tags=["AI Capabilities"]
+)
+
+# Notification preferences
+api_router.include_router(
+    notifications.router,
+    tags=["Notifications"]
 )

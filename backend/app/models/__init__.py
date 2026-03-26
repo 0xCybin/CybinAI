@@ -24,6 +24,8 @@ from app.models.tags import (
     ConversationTag,
 )
 
+from app.models.notifications import NotificationPreferences
+
 __all__ = [
     # Enums
     "UserRole",
@@ -46,4 +48,6 @@ __all__ = [
     # Tags
     "Tag",
     "ConversationTag",
+    # Notifications
+    "NotificationPreferences",
 ]
