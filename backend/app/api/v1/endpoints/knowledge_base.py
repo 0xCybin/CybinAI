@@ -3,6 +3,7 @@ Knowledge Base Endpoints
 Manages FAQ articles and AI training content.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, status, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_
@@ -131,6 +132,19 @@ async def create_article(
     await db.commit()
     await db.refresh(article)
 
+    # Generate RAG embeddings
+    try:
+        from app.services.embedding_service import EmbeddingService
+        embed_service = EmbeddingService(db)
+        await embed_service.embed_article(
+            tenant_id=current_user.tenant_id,
+            article_id=article.id,
+            title=article.title,
+            content=article.content,
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to generate embeddings: {e}")
+
     return KBArticleResponse.model_validate(article)
 
 
@@ -170,6 +184,19 @@ async def update_article(
 
     await db.commit()
     await db.refresh(article)
+
+    # Generate RAG embeddings
+    try:
+        from app.services.embedding_service import EmbeddingService
+        embed_service = EmbeddingService(db)
+        await embed_service.embed_article(
+            tenant_id=current_user.tenant_id,
+            article_id=article.id,
+            title=article.title,
+            content=article.content,
+        )
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to generate embeddings: {e}")
 
     return KBArticleResponse.model_validate(article)
 
