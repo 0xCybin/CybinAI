@@ -192,7 +192,7 @@ export default function Home() {
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href="/demo/widget"
+                href="#how-it-works"
                 className="border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all flex items-center justify-center"
               >
                 See How It Works
@@ -254,41 +254,112 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white shadow-lg shadow-amber-600/20">
-                1
+          <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto items-center">
+            {/* Left: Steps */}
+            <div className="space-y-8">
+              <div className="flex gap-5">
+                <div className="flex-shrink-0 w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-amber-600/20">
+                  1
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    Tell us about your business
+                  </h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Your services, pricing, hours, and the questions customers ask most. We pre-fill everything based on your industry.
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                Tell Us About Your Business
-              </h3>
-              <p className="text-zinc-400 leading-relaxed">
-                Answer a few questions about your services, pricing, hours, and common customer questions. Takes about 5 minutes.
-              </p>
+
+              <div className="flex gap-5">
+                <div className="flex-shrink-0 w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-amber-600/20">
+                  2
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    AI learns your business instantly
+                  </h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Your AI reads your knowledge base and learns how to answer questions, book appointments, and handle inquiries just like you would.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-5">
+                <div className="flex-shrink-0 w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-amber-600/20">
+                  3
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    Customers get instant answers 24/7
+                  </h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    Phone, text, email, or chat - your AI handles it all. You see every conversation in your dashboard and step in when needed.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white shadow-lg shadow-amber-600/20">
-                2
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                AI Learns Your Business
-              </h3>
-              <p className="text-zinc-400 leading-relaxed">
-                Your AI assistant learns your services, FAQs, and how you want to handle different types of inquiries.
-              </p>
-            </div>
+            {/* Right: Simulated Chat Demo */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-1 shadow-2xl">
+              <div className="bg-zinc-800 rounded-xl overflow-hidden">
+                {/* Chat header */}
+                <div className="bg-amber-600 px-5 py-3.5 flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white text-sm font-bold">M</div>
+                  <div>
+                    <div className="text-white font-semibold text-sm">Mike&apos;s HVAC Services</div>
+                    <div className="text-amber-100/70 text-xs">AI Assistant - Online</div>
+                  </div>
+                </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-white shadow-lg shadow-amber-600/20">
-                3
+                {/* Chat messages */}
+                <div className="p-5 space-y-4 min-h-[320px]">
+                  {/* Customer message */}
+                  <div className="flex justify-end">
+                    <div className="bg-amber-600/20 border border-amber-600/30 text-zinc-200 rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%] text-sm">
+                      Hi, my AC stopped blowing cold air. Can someone come look at it today?
+                    </div>
+                  </div>
+
+                  {/* AI response */}
+                  <div className="flex justify-start">
+                    <div className="bg-zinc-700/50 text-zinc-200 rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[80%] text-sm leading-relaxed">
+                      I&apos;m sorry to hear that! I can definitely help. Our diagnostic service call is $89, and we have a technician available this afternoon between 2-4 PM. Would that work for you?
+                    </div>
+                  </div>
+
+                  {/* Customer message */}
+                  <div className="flex justify-end">
+                    <div className="bg-amber-600/20 border border-amber-600/30 text-zinc-200 rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%] text-sm">
+                      Yes, 2-4 works. What do I need to have ready?
+                    </div>
+                  </div>
+
+                  {/* AI response */}
+                  <div className="flex justify-start">
+                    <div className="bg-zinc-700/50 text-zinc-200 rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[80%] text-sm leading-relaxed">
+                      You&apos;re all set for today between 2-4 PM. Just make sure someone 18+ is home, and if you can, set your thermostat to where the problem happens. Our tech will call 30 min before arrival. Can I get your address?
+                    </div>
+                  </div>
+
+                  {/* Confidence badge */}
+                  <div className="flex justify-start">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                      AI handled with high confidence
+                    </span>
+                  </div>
+                </div>
+
+                {/* Chat input */}
+                <div className="border-t border-zinc-700 px-4 py-3 flex gap-2">
+                  <div className="flex-1 bg-zinc-700/50 rounded-lg px-3 py-2 text-zinc-500 text-sm">
+                    Type a message...
+                  </div>
+                  <div className="w-9 h-9 bg-amber-600 rounded-lg flex items-center justify-center">
+                    <ArrowRight className="w-4 h-4 text-white" />
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                Customers Get Instant Answers
-              </h3>
-              <p className="text-zinc-400 leading-relaxed">
-                24/7 coverage across phone, text, email, and chat. Your customers never wait. You never miss a lead.
-              </p>
             </div>
           </div>
         </div>
