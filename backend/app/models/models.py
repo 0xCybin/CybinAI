@@ -195,6 +195,7 @@ class Message(Base):
     attachments: Mapped[list] = mapped_column(JSONB, default=list)
     ai_metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
     is_internal: Mapped[bool] = mapped_column(Boolean, default=False)
+    confidence_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
     # Relationships
@@ -236,6 +237,19 @@ class KBArticle(Base, TimestampMixin):
         Index("ix_kb_articles_tenant_category", "tenant_id", "category"),
         Index("ix_kb_articles_tenant_published", "tenant_id", "published"),
     )
+
+
+class KBEmbedding(Base, TimestampMixin):
+    __tablename__ = "kb_embeddings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    article_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("kb_articles.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[Optional[str]] = mapped_column(Text)  # Stored as text, converted to vector in queries
+
+    # Relationships
+    article: Mapped["KBArticle"] = relationship("KBArticle", backref="embeddings")
 
 
 class Integration(Base, TimestampMixin):
