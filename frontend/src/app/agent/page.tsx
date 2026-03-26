@@ -335,7 +335,7 @@ export default function AgentInboxPage() {
 
   if (authLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#131210]">
+      <div className="h-screen flex items-center justify-center bg-zinc-950">
         <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     );
@@ -346,11 +346,11 @@ export default function AgentInboxPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#131210] text-neutral-100">
+    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-100">
       {/* Header */}
-      <header className="bg-[#1A1915] border-b border-neutral-800 px-6 py-3 flex items-center justify-between flex-shrink-0">
+      <header className="bg-zinc-900 border-b border-zinc-800 px-6 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-neutral-100">Agent Inbox</h1>
+          <h1 className="text-lg font-semibold text-white">Agent Inbox</h1>
           {/* WebSocket Connection Status */}
           <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
             isConnected 
@@ -372,14 +372,14 @@ export default function AgentInboxPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <span className="text-sm text-neutral-400">{user?.name}</span>
+            <span className="text-sm text-zinc-400">{user?.name}</span>
           </div>
-          <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-300">
+          <Link href="/dashboard" className="text-sm text-zinc-500 hover:text-zinc-300">
             Dashboard
           </Link>
           <button
             onClick={() => { logout(); window.location.href = '/auth/login'; }}
-            className="text-sm text-neutral-500 hover:text-neutral-300"
+            className="text-sm text-zinc-500 hover:text-zinc-300"
           >
             Sign out
           </button>
@@ -408,9 +408,9 @@ export default function AgentInboxPage() {
         />
 
         {/* Conversation List */}
-        <div className="w-80 bg-[#1E1C19] border-r border-neutral-800 flex flex-col">
-          <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
-            <h2 className="font-semibold text-neutral-200 capitalize">{activeView} Conversations</h2>
+        <div className="w-80 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+          <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+            <h2 className="font-semibold text-zinc-200 capitalize">{activeView} Conversations</h2>
             <button 
               onClick={fetchConversations}
               className="text-sm text-amber-500 hover:text-amber-400"
@@ -427,7 +427,7 @@ export default function AgentInboxPage() {
         </div>
 
         {/* Conversation Panel */}
-        <div className="flex-1 flex flex-col bg-[#1A1915]">
+        <div className="flex-1 flex flex-col bg-zinc-950">
           {selectedConversation ? (
             <ConversationPanel
               conversation={selectedConversation}
@@ -439,26 +439,59 @@ export default function AgentInboxPage() {
               loading={loadingDetail}
             />
           ) : conversations.length === 0 && !loadingList ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center max-w-sm px-6">
-                <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <svg className="w-7 h-7 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="max-w-lg w-full">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center mb-6">
+                  <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-5">
+                    <svg className="w-7 h-7 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">Your inbox is empty</h3>
+                  <p className="text-zinc-400 text-sm leading-relaxed">
+                    When customers reach out through chat, email, phone, or SMS, their conversations appear here.
+                  </p>
+                  {isConnected && (
+                    <p className="text-xs text-emerald-400 mt-4">Real-time updates active</p>
+                  )}
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">No conversations yet</h3>
-                <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                  When customers reach out via chat, email, phone, or text, their conversations will appear here.
-                </p>
-                <Link
-                  href="/demo/widget"
-                  className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-                >
-                  Test Your AI
-                </Link>
-                {isConnected && (
-                  <p className="text-xs text-emerald-400 mt-4">Real-time updates active</p>
-                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Link
+                    href="/demo/widget"
+                    className="flex flex-col items-center gap-2 p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-amber-500/30 transition-colors group"
+                  >
+                    <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-white group-hover:text-amber-500 transition-colors">Test your chat widget</p>
+                  </Link>
+                  <Link
+                    href="/admin/knowledge-base"
+                    className="flex flex-col items-center gap-2 p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-amber-500/30 transition-colors group"
+                  >
+                    <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-white group-hover:text-amber-500 transition-colors">Add knowledge base articles</p>
+                  </Link>
+                  <Link
+                    href="/admin/settings"
+                    className="flex flex-col items-center gap-2 p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-amber-500/30 transition-colors group"
+                  >
+                    <div className="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium text-white group-hover:text-amber-500 transition-colors">Configure AI settings</p>
+                  </Link>
+                </div>
               </div>
             </div>
           ) : (

@@ -105,19 +105,19 @@ function StatCard({
   };
 
   return (
-    <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-neutral-400 mb-1">{title}</p>
+          <p className="text-sm text-zinc-400 mb-1">{title}</p>
           <p className="text-3xl font-bold text-white">{value}</p>
           {subtitle && (
-            <p className="text-sm text-neutral-500 mt-1">{subtitle}</p>
+            <p className="text-sm text-zinc-500 mt-1">{subtitle}</p>
           )}
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               <TrendingUp size={14} className="text-green-500" />
               <span className="text-sm text-green-500">{trend.value}%</span>
-              <span className="text-sm text-neutral-500">{trend.label}</span>
+              <span className="text-sm text-zinc-500">{trend.label}</span>
             </div>
           )}
         </div>
@@ -141,17 +141,17 @@ function SimpleBarChart({
 }) {
   return (
     <div className="space-y-3">
-      {label && <p className="text-sm text-neutral-400">{label}</p>}
+      {label && <p className="text-sm text-zinc-400">{label}</p>}
       {data.map((item, i) => (
         <div key={i} className="flex items-center gap-3">
-          <span className="text-sm text-neutral-500 w-16">{item.label}</span>
-          <div className="flex-1 bg-neutral-800 rounded-full h-3 overflow-hidden">
+          <span className="text-sm text-zinc-500 w-16">{item.label}</span>
+          <div className="flex-1 bg-zinc-800 rounded-full h-3 overflow-hidden">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-500"
               style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%` }}
             />
           </div>
-          <span className="text-sm text-neutral-300 w-12 text-right">{item.value}</span>
+          <span className="text-sm text-zinc-300 w-12 text-right">{item.value}</span>
         </div>
       ))}
     </div>
@@ -170,7 +170,7 @@ function VolumeChart({ data }: { data: DailyCount[] }) {
   // If no data at all, show empty state
   if (last7Days.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-neutral-500">
+      <div className="h-48 flex items-center justify-center text-zinc-500">
         <div className="text-center">
           <BarChart3 size={40} className="mx-auto mb-2 opacity-30" />
           <p>No data available</p>
@@ -198,14 +198,14 @@ function VolumeChart({ data }: { data: DailyCount[] }) {
                 />
               ) : (
                 <div
-                  className="w-full max-w-[40px] bg-neutral-700/50 rounded-t h-2"
+                  className="w-full max-w-[40px] bg-zinc-700/50 rounded-t h-2"
                   title={`${dateLabel}: 0 conversations`}
                 />
               )}
             </div>
             <div className="text-center">
-              <span className="text-xs text-neutral-500 block">{dayLabel}</span>
-              <span className="text-[10px] text-neutral-600">{day.count}</span>
+              <span className="text-xs text-zinc-500 block">{dayLabel}</span>
+              <span className="text-[10px] text-zinc-600">{day.count}</span>
             </div>
           </div>
         );
@@ -235,7 +235,7 @@ function HourlyHeatmap({ data }: { data: HourlyActivity[] }) {
           />
         ))}
       </div>
-      <div className="flex justify-between text-xs text-neutral-600">
+      <div className="flex justify-between text-xs text-zinc-600">
         <span>12am</span>
         <span>6am</span>
         <span>12pm</span>
@@ -297,30 +297,30 @@ export default function AnalyticsDashboardPage() {
   // Show loading state
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#1A1915] flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1915] text-white">
+    <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
-      <header className="bg-[#131210] border-b border-neutral-800 px-6 py-4">
+      <header className="bg-zinc-900 border-b border-zinc-800 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
-              className="p-2 rounded-lg hover:bg-neutral-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
             >
-              <ArrowLeft size={20} className="text-neutral-400" />
+              <ArrowLeft size={20} className="text-zinc-400" />
             </Link>
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <BarChart3 className="text-amber-500" size={24} />
                 Analytics Dashboard
               </h1>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-zinc-500">
                 Performance metrics and insights
               </p>
             </div>
@@ -331,7 +331,7 @@ export default function AnalyticsDashboardPage() {
             <select
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
-              className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -400,16 +400,16 @@ export default function AnalyticsDashboardPage() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Conversation Volume */}
-              <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">Conversation Volume (Last 7 Days)</h3>
                 <VolumeChart data={analytics.volume.data} />
-                <p className="text-sm text-neutral-500 mt-4 text-center">
+                <p className="text-sm text-zinc-500 mt-4 text-center">
                   {analytics.volume.total} total in period
                 </p>
               </div>
 
               {/* AI vs Human Resolution */}
-              <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">Resolution Breakdown</h3>
                 <div className="flex items-center justify-center gap-8 py-8">
                   <div className="text-center">
@@ -417,15 +417,15 @@ export default function AnalyticsDashboardPage() {
                       <Bot size={40} className="text-amber-500" />
                     </div>
                     <p className="text-2xl font-bold">{analytics.resolution_breakdown.ai_resolved}</p>
-                    <p className="text-sm text-neutral-500">AI Resolved</p>
+                    <p className="text-sm text-zinc-500">AI Resolved</p>
                   </div>
-                  <div className="text-4xl text-neutral-700">vs</div>
+                  <div className="text-4xl text-zinc-700">vs</div>
                   <div className="text-center">
                     <div className="w-24 h-24 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
                       <UserCheck size={40} className="text-blue-500" />
                     </div>
                     <p className="text-2xl font-bold">{analytics.resolution_breakdown.human_resolved}</p>
-                    <p className="text-sm text-neutral-500">Human Resolved</p>
+                    <p className="text-sm text-zinc-500">Human Resolved</p>
                   </div>
                 </div>
               </div>
@@ -434,7 +434,7 @@ export default function AnalyticsDashboardPage() {
             {/* Breakdowns Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Status Breakdown */}
-              <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">By Status</h3>
                 <SimpleBarChart
                   label=""
@@ -455,7 +455,7 @@ export default function AnalyticsDashboardPage() {
               </div>
 
               {/* Channel Breakdown */}
-              <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">By Channel</h3>
                 <SimpleBarChart
                   label=""
@@ -474,17 +474,17 @@ export default function AnalyticsDashboardPage() {
               </div>
 
               {/* Response Times */}
-              <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">Response Times</h3>
                 <div className="space-y-6">
                   <div>
-                    <p className="text-sm text-neutral-500 mb-1">Avg First Response</p>
+                    <p className="text-sm text-zinc-500 mb-1">Avg First Response</p>
                     <p className="text-3xl font-bold text-amber-500">
                       {formatDuration(analytics.response_times.avg_first_response_seconds)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-neutral-500 mb-1">Avg Resolution Time</p>
+                    <p className="text-sm text-zinc-500 mb-1">Avg Resolution Time</p>
                     <p className="text-3xl font-bold text-green-500">
                       {formatDuration(analytics.response_times.avg_resolution_time_seconds)}
                     </p>
@@ -494,16 +494,16 @@ export default function AnalyticsDashboardPage() {
             </div>
 
             {/* Hourly Activity */}
-            <div className="bg-[#232220] border border-neutral-800 rounded-xl p-6">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4">Activity by Hour</h3>
               <HourlyHeatmap data={analytics.hourly_activity} />
-              <p className="text-sm text-neutral-500 mt-4 text-center">
+              <p className="text-sm text-zinc-500 mt-4 text-center">
                 Conversation volume by hour of day (UTC)
               </p>
             </div>
 
             {/* Footer Stats */}
-            <div className="flex items-center justify-between text-sm text-neutral-500 pt-4 border-t border-neutral-800">
+            <div className="flex items-center justify-between text-sm text-zinc-500 pt-4 border-t border-zinc-800">
               <span>
                 Total messages: {analytics.overview.total_messages.toLocaleString()}
               </span>

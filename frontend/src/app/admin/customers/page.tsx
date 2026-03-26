@@ -166,7 +166,7 @@ export default function CustomersPage() {
   // Loading state
   if (authLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#1A1915]">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
         <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     );
@@ -177,11 +177,11 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-100 flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <Users className="w-7 h-7 text-amber-500" />
             Customers
           </h1>
-          <p className="text-neutral-400 mt-1">
+          <p className="text-zinc-400 mt-1">
             {total} {total === 1 ? 'customer' : 'customers'} total
           </p>
         </div>
@@ -198,13 +198,13 @@ export default function CustomersPage() {
       {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
           <input
             type="text"
             placeholder="Search by name, email, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-amber-500 transition-colors"
+            className="w-full pl-12 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
           />
         </div>
       </div>
@@ -217,30 +217,34 @@ export default function CustomersPage() {
       )}
 
       {/* Table */}
-      <div className="bg-[#131210] border border-neutral-800 rounded-xl overflow-hidden">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
           </div>
         ) : customers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-neutral-500">
-            <UserCircle className="w-16 h-16 mb-4 opacity-50" />
-            <p className="text-lg font-medium">No customers found</p>
-            <p className="text-sm mt-1">
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mb-5">
+              <UserCircle className="w-7 h-7 text-zinc-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {debouncedSearch ? 'No customers found' : 'No customers yet'}
+            </h3>
+            <p className="text-zinc-400 text-sm max-w-md text-center">
               {debouncedSearch
-                ? 'Try a different search term'
-                : 'Customers will appear here when they start a chat'}
+                ? 'Try a different search term.'
+                : 'Customer profiles are created automatically when people reach out through any channel.'}
             </p>
           </div>
         ) : (
           <>
             <table className="w-full">
               <thead>
-                <tr className="border-b border-neutral-800 text-left">
+                <tr className="border-b border-zinc-800 text-left">
                   <th className="px-6 py-4">
                     <button
                       onClick={() => handleSort('name')}
-                      className="flex items-center gap-2 text-xs font-semibold text-neutral-400 uppercase tracking-wider hover:text-neutral-200 transition-colors"
+                      className="flex items-center gap-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider hover:text-zinc-200 transition-colors"
                     >
                       Customer
                       <ArrowUpDown className="w-3.5 h-3.5" />
@@ -249,37 +253,37 @@ export default function CustomersPage() {
                   <th className="px-6 py-4">
                     <button
                       onClick={() => handleSort('email')}
-                      className="flex items-center gap-2 text-xs font-semibold text-neutral-400 uppercase tracking-wider hover:text-neutral-200 transition-colors"
+                      className="flex items-center gap-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider hover:text-zinc-200 transition-colors"
                     >
                       Email
                       <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                     Phone
                   </th>
-                  <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider text-center">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">
                     Chats
                   </th>
                   <th className="px-6 py-4">
                     <button
                       onClick={() => handleSort('last_contact')}
-                      className="flex items-center gap-2 text-xs font-semibold text-neutral-400 uppercase tracking-wider hover:text-neutral-200 transition-colors"
+                      className="flex items-center gap-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider hover:text-zinc-200 transition-colors"
                     >
                       Last Contact
                       <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </th>
-                  <th className="px-6 py-4 text-xs font-semibold text-neutral-400 uppercase tracking-wider text-right">
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-right">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800">
+              <tbody className="divide-y divide-zinc-800">
                 {customers.map((customer) => (
                   <tr
                     key={customer.id}
-                    className="hover:bg-neutral-800/50 transition-colors"
+                    className="hover:bg-zinc-800/50 transition-colors"
                   >
                     {/* Name */}
                     <td className="px-6 py-4">
@@ -296,7 +300,7 @@ export default function CustomersPage() {
                           <p className="text-white font-medium group-hover:text-amber-400 transition-colors">
                             {getCustomerDisplayName(customer)}
                           </p>
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-xs text-zinc-500">
                             Added {new Date(customer.created_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -306,37 +310,37 @@ export default function CustomersPage() {
                     {/* Email */}
                     <td className="px-6 py-4">
                       {customer.email ? (
-                        <div className="flex items-center gap-2 text-neutral-300">
-                          <Mail className="w-4 h-4 text-neutral-500" />
+                        <div className="flex items-center gap-2 text-zinc-300">
+                          <Mail className="w-4 h-4 text-zinc-500" />
                           <span className="text-sm">{customer.email}</span>
                         </div>
                       ) : (
-                        <span className="text-neutral-600 text-sm">—</span>
+                        <span className="text-zinc-600 text-sm">—</span>
                       )}
                     </td>
 
                     {/* Phone */}
                     <td className="px-6 py-4">
                       {customer.phone ? (
-                        <div className="flex items-center gap-2 text-neutral-300">
-                          <Phone className="w-4 h-4 text-neutral-500" />
+                        <div className="flex items-center gap-2 text-zinc-300">
+                          <Phone className="w-4 h-4 text-zinc-500" />
                           <span className="text-sm">{customer.phone}</span>
                         </div>
                       ) : (
-                        <span className="text-neutral-600 text-sm">—</span>
+                        <span className="text-zinc-600 text-sm">—</span>
                       )}
                     </td>
 
                     {/* Conversation Count */}
                     <td className="px-6 py-4 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-neutral-700/50 rounded-full text-sm text-neutral-300">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-700/50 rounded-full text-sm text-zinc-300">
                         <MessageSquare className="w-3.5 h-3.5" />
                         {customer.conversation_count}
                       </span>
                     </td>
 
                     {/* Last Contact */}
-                    <td className="px-6 py-4 text-sm text-neutral-400">
+                    <td className="px-6 py-4 text-sm text-zinc-400">
                       {formatRelativeTime(customer.last_contact_at)}
                     </td>
 
@@ -344,7 +348,7 @@ export default function CustomersPage() {
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/admin/customers/${customer.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-neutral-400 hover:text-amber-400 hover:bg-neutral-800 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 rounded-lg transition-colors"
                       >
                         View
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -357,8 +361,8 @@ export default function CustomersPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-neutral-800">
-                <p className="text-sm text-neutral-500">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800">
+                <p className="text-sm text-zinc-500">
                   Showing {(currentPage - 1) * pageSize + 1} to{' '}
                   {Math.min(currentPage * pageSize, total)} of {total}
                 </p>
@@ -366,17 +370,17 @@ export default function CustomersPage() {
                   <button
                     onClick={() => setCurrentPage((p) => p - 1)}
                     disabled={!canPrevious}
-                    className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <span className="px-3 py-1 text-sm text-neutral-300">
+                  <span className="px-3 py-1 text-sm text-zinc-300">
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage((p) => p + 1)}
                     disabled={!canNext}
-                    className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>

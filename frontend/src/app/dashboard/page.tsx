@@ -1,13 +1,28 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth, useRequireAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, ArrowRight, BookOpen, Settings, BarChart3 } from 'lucide-react';
 import { SummaryCard } from '@/components/dashboard/SummaryCard';
+
+const onboardingSteps = [
+  { id: 'business', label: 'Set up business info', href: '/onboarding?step=1' },
+  { id: 'services', label: 'Add services & pricing', href: '/onboarding?step=2' },
+  { id: 'knowledge', label: 'Build FAQ knowledge base', href: '/admin/knowledge-base' },
+  { id: 'channels', label: 'Configure channels', href: '/admin/settings' },
+  { id: 'test', label: 'Test your AI', href: '/demo/widget' },
+  { id: 'live', label: 'Go live', href: '/onboarding?step=6' },
+];
 
 export default function DashboardPage() {
   const { user, tenant, isLoading } = useAuth();
   const { isAuthenticated } = useRequireAuth();
+
+  // TODO: pull real completion state from API
+  const [completedSteps] = useState<string[]>([]);
+  const onboardingComplete = completedSteps.length >= onboardingSteps.length;
+  const progressPercent = Math.round((completedSteps.length / onboardingSteps.length) * 100);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -36,33 +51,92 @@ export default function DashboardPage() {
               </h1>
               <p className="text-zinc-500 mt-1 text-sm">{today}</p>
             </div>
-            {tenant && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-lg border border-zinc-800">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                <span className="text-sm font-medium text-zinc-300">{tenant.name}</span>
+            <div className="flex items-center gap-3">
+              {tenant && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900 rounded-lg border border-zinc-800">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                  <span className="text-sm font-medium text-zinc-300">{tenant.name}</span>
+                </div>
+              )}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                onboardingComplete
+                  ? 'bg-emerald-500/10 border-emerald-500/20'
+                  : 'bg-amber-500/10 border-amber-500/20'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${onboardingComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className={`text-sm font-medium ${onboardingComplete ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {onboardingComplete ? 'AI Online' : 'Setup Required'}
+                </span>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
-        {/* Setup Progress Banner */}
-        <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-white font-semibold mb-1">Complete your setup</h3>
-            <p className="text-zinc-400 text-sm">
-              Finish onboarding so your AI can start handling customer conversations.
-            </p>
-            <div className="mt-3 w-full sm:w-64 bg-zinc-800 rounded-full h-2">
-              <div className="bg-amber-500 h-2 rounded-full w-1/6" />
+        {/* Onboarding Checklist (hero when incomplete) */}
+        {!onboardingComplete && (
+          <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-1">Get your AI assistant ready</h2>
+                  <p className="text-zinc-400 text-sm">
+                    Complete these steps so your AI can start handling customer conversations.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-2xl font-bold text-amber-500">{progressPercent}%</span>
+                  <div className="w-32 bg-zinc-800 rounded-full h-2">
+                    <div
+                      className="bg-amber-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                {onboardingSteps.map((step) => {
+                  const done = completedSteps.includes(step.id);
+                  return (
+                    <Link
+                      key={step.id}
+                      href={step.href}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group ${
+                        done
+                          ? 'bg-zinc-800/50'
+                          : 'bg-zinc-800 hover:bg-zinc-700/80'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        done
+                          ? 'bg-emerald-500'
+                          : 'border-2 border-zinc-600 group-hover:border-amber-500'
+                      }`}>
+                        {done && <Check size={14} className="text-white" />}
+                      </div>
+                      <span className={`text-sm font-medium flex-1 ${
+                        done ? 'text-zinc-500 line-through' : 'text-zinc-200 group-hover:text-white'
+                      }`}>
+                        {step.label}
+                      </span>
+                      {!done && (
+                        <ArrowRight size={16} className="text-zinc-600 group-hover:text-amber-500 transition-colors" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <Link
+                href="/onboarding"
+                className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-colors"
+              >
+                Continue Setup
+                <ArrowRight size={16} />
+              </Link>
             </div>
           </div>
-          <Link
-            href="/onboarding"
-            className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap"
-          >
-            Continue Setup
-          </Link>
-        </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -92,30 +166,65 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Left: Recent Activity */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-                <MessageSquareIcon />
+        {/* AI Health + Recent Conversations */}
+        {onboardingComplete && (
+          <div className="grid lg:grid-cols-2 gap-6 mb-8">
+            {/* AI Health */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">AI Status</h2>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">Your AI is active and handling conversations</p>
+                  <p className="text-zinc-500 text-sm mt-1">Responding across all configured channels. Average response time under 30 seconds.</p>
+                </div>
               </div>
-              <p className="text-zinc-300 font-medium mb-1">No conversations yet</p>
-              <p className="text-zinc-500 text-sm mb-5 max-w-xs">
-                Complete onboarding to get started. Once customers reach out, their conversations will appear here.
-              </p>
-              <Link
-                href="/onboarding"
-                className="text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
-              >
-                Complete onboarding
-              </Link>
+            </div>
+
+            {/* Recent Conversations */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Recent Conversations</h2>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquareIcon />
+                </div>
+                <p className="text-zinc-300 font-medium mb-1">No conversations yet</p>
+                <p className="text-zinc-500 text-sm max-w-xs">
+                  Once customers reach out, their conversations will appear here.
+                </p>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Right: Quick Actions */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        {/* Two Column Layout - Activity + Quick Actions */}
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          {/* Recent Activity (shown when onboarding incomplete) */}
+          {!onboardingComplete && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquareIcon />
+                </div>
+                <p className="text-zinc-300 font-medium mb-1">No conversations yet</p>
+                <p className="text-zinc-500 text-sm mb-5 max-w-xs">
+                  Complete onboarding to get started. Once customers reach out, their conversations will appear here.
+                </p>
+                <Link
+                  href="/onboarding"
+                  className="text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
+                >
+                  Complete onboarding
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className={`bg-zinc-900 border border-zinc-800 rounded-xl p-6 ${onboardingComplete ? 'lg:col-span-2' : ''}`}>
             <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Link
@@ -162,11 +271,48 @@ export default function DashboardPage() {
                   <WidgetIcon />
                 </div>
                 <div>
-                  <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Widget Settings</p>
+                  <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Widget Demo</p>
                   <p className="text-zinc-500 text-xs">Preview chat widget</p>
                 </div>
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Getting Started Guide */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Getting Started Guide</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link
+              href="/admin/knowledge-base"
+              className="flex items-start gap-3 p-4 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <BookOpen size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">How to add FAQs</p>
+                <p className="text-zinc-500 text-xs mt-1">Add articles so your AI can answer common questions accurately.</p>
+              </div>
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="flex items-start gap-3 p-4 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <Settings size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Customize your widget</p>
+                <p className="text-zinc-500 text-xs mt-1">Change colors, greeting messages, and data collection fields.</p>
+              </div>
+            </Link>
+            <Link
+              href="/dashboard/analytics"
+              className="flex items-start gap-3 p-4 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <BarChart3 size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Read your analytics</p>
+                <p className="text-zinc-500 text-xs mt-1">Track resolution rates, response times, and conversation volume.</p>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
@@ -174,7 +320,6 @@ export default function DashboardPage() {
   );
 }
 
-// Simple inline SVG icons to avoid extra lucide imports
 function MessageSquareIcon() {
   return (
     <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

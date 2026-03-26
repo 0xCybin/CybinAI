@@ -32,7 +32,7 @@ function NavItem({ href, icon, label, isActive }: NavItemProps) {
       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
         isActive
           ? 'bg-amber-500/10 text-amber-500'
-          : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200'
+          : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
       }`}
     >
       {icon}
@@ -61,16 +61,18 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1915]">
+    <div className="min-h-screen bg-zinc-950">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-[#131210] border-r border-neutral-800 flex flex-col">
+      <aside className="fixed left-0 top-0 h-full w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
         {/* Logo */}
         <div className="p-6">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">M</span>
             </div>
-            <span className="text-lg font-bold text-white">MykoDesk</span>
+            <span className="text-lg font-bold text-white">
+              Myko<span className="text-amber-500">Desk</span>
+            </span>
           </Link>
         </div>
 
@@ -108,10 +110,10 @@ export default function DashboardLayout({
           />
 
           {/* Divider */}
-          <div className="my-4 border-t border-neutral-800" />
+          <div className="my-4 border-t border-zinc-800" />
 
           {/* Admin Section */}
-          <p className="px-3 py-2 text-[11px] font-semibold text-neutral-600 uppercase tracking-wider">
+          <p className="px-3 py-2 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
             Admin
           </p>
           <NavItem
@@ -153,10 +155,10 @@ export default function DashboardLayout({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-neutral-800">
-          <button 
+        <div className="p-4 border-t border-zinc-800">
+          <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 transition-colors"
           >
             <LogOut size={20} />
             <span className="text-sm font-medium">Sign Out</span>

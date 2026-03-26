@@ -195,7 +195,7 @@ export default function SettingsPage() {
   // Loading state
   if (authLoading || !isAuthenticated || loading) {
     return (
-      <div className="min-h-screen bg-[#1A1915] flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
@@ -203,7 +203,7 @@ export default function SettingsPage() {
 
   if (!settings) {
     return (
-      <div className="min-h-screen bg-[#1A1915] flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <p className="text-red-400">{error || 'Failed to load settings'}</p>
       </div>
     );
@@ -217,19 +217,19 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#1A1915] text-white">
+    <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
-      <header className="bg-[#131210] border-b border-neutral-800 px-6 py-4">
+      <header className="bg-zinc-900 border-b border-zinc-800 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center gap-4">
           <Link
             href="/dashboard"
-            className="p-2 rounded-lg hover:bg-neutral-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
           >
-            <ArrowLeft size={20} className="text-neutral-400" />
+            <ArrowLeft size={20} className="text-zinc-400" />
           </Link>
           <div>
             <h1 className="text-xl font-bold">Settings</h1>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-zinc-500">
               Configure your business and chat widget
             </p>
           </div>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
         <div className="flex gap-6">
           {/* Sidebar Tabs */}
           <nav className="w-56 flex-shrink-0">
-            <div className="bg-[#232220] rounded-xl border border-neutral-800 p-2">
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-2">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${
                     activeTab === tab.id
                       ? 'bg-amber-600/20 text-amber-400'
-                      : 'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200'
+                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
                   }`}
                 >
                   <tab.icon size={20} />
@@ -352,13 +352,13 @@ function BusinessProfileTab({
   };
 
   return (
-    <div className="bg-[#232220] rounded-xl border border-neutral-800">
-      <div className="p-6 border-b border-neutral-800">
+    <div className="bg-zinc-900 rounded-xl border border-zinc-800">
+      <div className="p-6 border-b border-zinc-800">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Building2 className="text-amber-500" size={20} />
           Business Profile
         </h2>
-        <p className="text-sm text-neutral-500 mt-1">
+        <p className="text-sm text-zinc-500 mt-1">
           Your business information displayed to customers
         </p>
       </div>
@@ -366,21 +366,21 @@ function BusinessProfileTab({
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Business Name */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Business Name
           </label>
           <input
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
             placeholder="Your Business Name"
           />
         </div>
 
         {/* Subdomain (read-only) */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Subdomain
           </label>
           <div className="flex items-center gap-2">
@@ -388,25 +388,25 @@ function BusinessProfileTab({
               type="text"
               value={data.subdomain}
               disabled
-              className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-2.5 text-neutral-500 cursor-not-allowed"
+              className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2.5 text-zinc-500 cursor-not-allowed"
             />
-            <span className="text-neutral-500 text-sm">.MykoDesk.com</span>
+            <span className="text-zinc-500 text-sm">.MykoDesk.com</span>
           </div>
-          <p className="text-xs text-neutral-600 mt-1">
+          <p className="text-xs text-zinc-600 mt-1">
             Contact support to change your subdomain
           </p>
         </div>
 
         {/* Logo URL */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Logo URL
           </label>
           <input
             type="url"
             value={form.logo_url}
             onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
             placeholder="https://example.com/logo.png"
           />
         </div>
@@ -414,7 +414,7 @@ function BusinessProfileTab({
         <div className="grid grid-cols-2 gap-4">
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
               <Phone size={14} className="inline mr-1" />
               Phone
             </label>
@@ -422,14 +422,14 @@ function BusinessProfileTab({
               type="tel"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
               placeholder="(555) 123-4567"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
               <Mail size={14} className="inline mr-1" />
               Email
             </label>
@@ -437,7 +437,7 @@ function BusinessProfileTab({
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
               placeholder="contact@example.com"
             />
           </div>
@@ -445,7 +445,7 @@ function BusinessProfileTab({
 
         {/* Website */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             <ExternalLink size={14} className="inline mr-1" />
             Website
           </label>
@@ -453,14 +453,14 @@ function BusinessProfileTab({
             type="url"
             value={form.website}
             onChange={(e) => setForm({ ...form, website: e.target.value })}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
             placeholder="https://example.com"
           />
         </div>
 
         {/* Address */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             <MapPin size={14} className="inline mr-1" />
             Address
           </label>
@@ -468,21 +468,21 @@ function BusinessProfileTab({
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
             rows={2}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
             placeholder="123 Main St, City, State 12345"
           />
         </div>
 
         {/* Timezone */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             <Globe size={14} className="inline mr-1" />
             Timezone
           </label>
           <select
             value={form.timezone}
             onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
           >
             {timezones.map((tz) => (
               <option key={tz} value={tz}>
@@ -493,7 +493,7 @@ function BusinessProfileTab({
         </div>
 
         {/* Save Button */}
-        <div className="pt-4 border-t border-neutral-800">
+        <div className="pt-4 border-t border-zinc-800">
           <button
             type="submit"
             disabled={saving}
@@ -539,13 +539,13 @@ function WidgetSettingsTab({
   return (
     <div className="space-y-6">
       {/* Colors Section */}
-      <div className="bg-[#232220] rounded-xl border border-neutral-800">
-        <div className="p-6 border-b border-neutral-800">
+      <div className="bg-zinc-900 rounded-xl border border-zinc-800">
+        <div className="p-6 border-b border-zinc-800">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Palette className="text-amber-500" size={20} />
             Widget Colors
           </h2>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-zinc-500 mt-1">
             Customize the look of your chat widget
           </p>
         </div>
@@ -554,7 +554,7 @@ function WidgetSettingsTab({
           <div className="grid grid-cols-2 gap-6">
             {/* Primary Color */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
                 Primary Color
               </label>
               <div className="flex items-center gap-3">
@@ -572,14 +572,14 @@ function WidgetSettingsTab({
                   onChange={(e) =>
                     setColors({ ...colors, primary_color: e.target.value })
                   }
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
+                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
 
             {/* Secondary Color */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
                 Secondary Color
               </label>
               <div className="flex items-center gap-3">
@@ -597,14 +597,14 @@ function WidgetSettingsTab({
                   onChange={(e) =>
                     setColors({ ...colors, secondary_color: e.target.value })
                   }
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
+                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
 
             {/* Background Color */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
                 Background Color
               </label>
               <div className="flex items-center gap-3">
@@ -622,14 +622,14 @@ function WidgetSettingsTab({
                   onChange={(e) =>
                     setColors({ ...colors, background_color: e.target.value })
                   }
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
+                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
 
             {/* Text Color */}
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
                 Text Color
               </label>
               <div className="flex items-center gap-3">
@@ -647,7 +647,7 @@ function WidgetSettingsTab({
                   onChange={(e) =>
                     setColors({ ...colors, text_color: e.target.value })
                   }
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
+                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -655,10 +655,10 @@ function WidgetSettingsTab({
 
           {/* Widget Preview */}
           <div className="mt-8">
-            <label className="block text-sm font-medium text-neutral-300 mb-3">
+            <label className="block text-sm font-medium text-zinc-300 mb-3">
               Preview
             </label>
-            <div className="bg-neutral-900 rounded-xl p-6 flex items-center justify-center min-h-[200px]">
+            <div className="bg-zinc-900 rounded-xl p-6 flex items-center justify-center min-h-[200px]">
               <WidgetPreview
                 colors={colors}
                 messages={messages}
@@ -668,11 +668,11 @@ function WidgetSettingsTab({
           </div>
 
           {/* Messages Section */}
-          <div className="mt-8 pt-6 border-t border-neutral-800">
+          <div className="mt-8 pt-6 border-t border-zinc-800">
             <h3 className="text-md font-semibold mb-4">Messages</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Welcome Message
                 </label>
                 <textarea
@@ -681,12 +681,12 @@ function WidgetSettingsTab({
                     setMessages({ ...messages, welcome_message: e.target.value })
                   }
                   rows={2}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Offline Message
                 </label>
                 <textarea
@@ -695,12 +695,12 @@ function WidgetSettingsTab({
                     setMessages({ ...messages, offline_message: e.target.value })
                   }
                   rows={2}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Input Placeholder
                 </label>
                 <input
@@ -709,14 +709,14 @@ function WidgetSettingsTab({
                   onChange={(e) =>
                     setMessages({ ...messages, placeholder_text: e.target.value })
                   }
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Features Section */}
-          <div className="mt-8 pt-6 border-t border-neutral-800">
+          <div className="mt-8 pt-6 border-t border-zinc-800">
             <h3 className="text-md font-semibold mb-4">Features</h3>
             <div className="grid grid-cols-2 gap-4">
               <ToggleSwitch
@@ -767,7 +767,7 @@ function WidgetSettingsTab({
           </div>
 
           {/* Save Button */}
-          <div className="mt-8 pt-6 border-t border-neutral-800">
+          <div className="mt-8 pt-6 border-t border-zinc-800">
             <button
               type="submit"
               disabled={saving}
@@ -824,20 +824,20 @@ function AISettingsTab({
   };
 
   return (
-    <div className="bg-[#232220] rounded-xl border border-neutral-800">
-      <div className="p-6 border-b border-neutral-800">
+    <div className="bg-zinc-900 rounded-xl border border-zinc-800">
+      <div className="p-6 border-b border-zinc-800">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Bot className="text-amber-500" size={20} />
           AI Configuration
         </h2>
-        <p className="text-sm text-neutral-500 mt-1">
+        <p className="text-sm text-zinc-500 mt-1">
           Control how the AI responds to customers
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* AI Enabled Toggle */}
-        <div className="p-4 bg-neutral-800/50 rounded-lg">
+        <div className="p-4 bg-zinc-800/50 rounded-lg">
           <ToggleSwitch
             label="Enable AI Responses"
             description="When disabled, all conversations go directly to human agents"
@@ -848,7 +848,7 @@ function AISettingsTab({
 
         {/* Response Style */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-3">
+          <label className="block text-sm font-medium text-zinc-300 mb-3">
             Response Style
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -860,11 +860,11 @@ function AISettingsTab({
                 className={`p-4 rounded-lg border text-left transition-colors ${
                   form.response_style === style.value
                     ? 'border-amber-500 bg-amber-500/10'
-                    : 'border-neutral-700 hover:border-neutral-600'
+                    : 'border-zinc-700 hover:border-zinc-600'
                 }`}
               >
                 <div className="font-medium">{style.label}</div>
-                <div className="text-xs text-neutral-500 mt-1">{style.desc}</div>
+                <div className="text-xs text-zinc-500 mt-1">{style.desc}</div>
               </button>
             ))}
           </div>
@@ -872,10 +872,10 @@ function AISettingsTab({
 
         {/* Escalation Threshold */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Escalation Threshold
           </label>
-          <p className="text-xs text-neutral-500 mb-3">
+          <p className="text-xs text-zinc-500 mb-3">
             AI confidence below this threshold will trigger human escalation
           </p>
           <div className="flex items-center gap-4">
@@ -890,7 +890,7 @@ function AISettingsTab({
                   escalation_threshold: parseInt(e.target.value) / 100,
                 })
               }
-              className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
             />
             <span className="w-16 text-center font-mono text-amber-400">
               {Math.round(form.escalation_threshold * 100)}%
@@ -900,10 +900,10 @@ function AISettingsTab({
 
         {/* Max AI Turns */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Max AI Turns
           </label>
-          <p className="text-xs text-neutral-500 mb-3">
+          <p className="text-xs text-zinc-500 mb-3">
             Maximum AI responses before suggesting human assistance
           </p>
           <input
@@ -914,12 +914,12 @@ function AISettingsTab({
             onChange={(e) =>
               setForm({ ...form, max_ai_turns: parseInt(e.target.value) || 5 })
             }
-            className="w-24 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500"
+            className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500"
           />
         </div>
 
         {/* Auto Resolve */}
-        <div className="space-y-4 p-4 bg-neutral-800/50 rounded-lg">
+        <div className="space-y-4 p-4 bg-zinc-800/50 rounded-lg">
           <ToggleSwitch
             label="Auto-Resolve Conversations"
             description="Automatically close inactive conversations"
@@ -928,8 +928,8 @@ function AISettingsTab({
           />
           {form.auto_resolve_enabled && (
             <div className="flex items-center gap-3 ml-6">
-              <Clock size={16} className="text-neutral-500" />
-              <span className="text-sm text-neutral-400">After</span>
+              <Clock size={16} className="text-zinc-500" />
+              <span className="text-sm text-zinc-400">After</span>
               <input
                 type="number"
                 min="1"
@@ -941,19 +941,19 @@ function AISettingsTab({
                     auto_resolve_hours: parseInt(e.target.value) || 24,
                   })
                 }
-                className="w-20 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500"
+                className="w-20 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500"
               />
-              <span className="text-sm text-neutral-400">hours of inactivity</span>
+              <span className="text-sm text-zinc-400">hours of inactivity</span>
             </div>
           )}
         </div>
 
         {/* Custom Instructions */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Custom Instructions
           </label>
-          <p className="text-xs text-neutral-500 mb-3">
+          <p className="text-xs text-zinc-500 mb-3">
             Additional guidelines for the AI (e.g., specific policies, language preferences)
           </p>
           <textarea
@@ -963,16 +963,16 @@ function AISettingsTab({
             }
             rows={4}
             maxLength={2000}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 resize-none"
             placeholder="e.g., Always recommend scheduling through our online portal. Never quote prices without checking current rates..."
           />
-          <div className="text-xs text-neutral-600 mt-1 text-right">
+          <div className="text-xs text-zinc-600 mt-1 text-right">
             {form.custom_instructions.length}/2000
           </div>
         </div>
 
         {/* Save Button */}
-        <div className="pt-4 border-t border-neutral-800">
+        <div className="pt-4 border-t border-zinc-800">
           <button
             type="submit"
             disabled={saving}
@@ -1020,13 +1020,13 @@ function NotificationSettingsTab({
   };
 
   return (
-    <div className="bg-[#232220] rounded-xl border border-neutral-800">
-      <div className="p-6 border-b border-neutral-800">
+    <div className="bg-zinc-900 rounded-xl border border-zinc-800">
+      <div className="p-6 border-b border-zinc-800">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Bell className="text-amber-500" size={20} />
           Notification Preferences
         </h2>
-        <p className="text-sm text-neutral-500 mt-1">
+        <p className="text-sm text-zinc-500 mt-1">
           Configure how you receive alerts and reports
         </p>
       </div>
@@ -1034,10 +1034,10 @@ function NotificationSettingsTab({
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Notification Email */}
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
             Notification Email
           </label>
-          <p className="text-xs text-neutral-500 mb-3">
+          <p className="text-xs text-zinc-500 mb-3">
             Email address for receiving notifications (leave empty to use account email)
           </p>
           <input
@@ -1046,7 +1046,7 @@ function NotificationSettingsTab({
             onChange={(e) =>
               setForm({ ...form, notification_email: e.target.value })
             }
-            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
             placeholder="notifications@example.com"
           />
         </div>
@@ -1054,7 +1054,7 @@ function NotificationSettingsTab({
         {/* Email Notifications */}
         <div>
           <h3 className="text-md font-semibold mb-4">Email Notifications</h3>
-          <div className="space-y-4 p-4 bg-neutral-800/50 rounded-lg">
+          <div className="space-y-4 p-4 bg-zinc-800/50 rounded-lg">
             <ToggleSwitch
               label="New Conversations"
               description="Get notified when a new conversation starts"
@@ -1085,7 +1085,7 @@ function NotificationSettingsTab({
         {/* Slack Integration */}
         <div>
           <h3 className="text-md font-semibold mb-4">Slack Integration</h3>
-          <div className="space-y-4 p-4 bg-neutral-800/50 rounded-lg">
+          <div className="space-y-4 p-4 bg-zinc-800/50 rounded-lg">
             <ToggleSwitch
               label="Enable Slack Notifications"
               description="Send alerts to a Slack channel"
@@ -1094,7 +1094,7 @@ function NotificationSettingsTab({
             />
             {form.slack_enabled && (
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Webhook URL
                 </label>
                 <input
@@ -1103,7 +1103,7 @@ function NotificationSettingsTab({
                   onChange={(e) =>
                     setForm({ ...form, slack_webhook_url: e.target.value })
                   }
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500"
                   placeholder="https://hooks.slack.com/services/..."
                 />
               </div>
@@ -1112,7 +1112,7 @@ function NotificationSettingsTab({
         </div>
 
         {/* Save Button */}
-        <div className="pt-4 border-t border-neutral-800">
+        <div className="pt-4 border-t border-zinc-800">
           <button
             type="submit"
             disabled={saving}
@@ -1157,7 +1157,7 @@ function ToggleSwitch({
         />
         <div
           className={`w-10 h-6 rounded-full transition-colors ${
-            checked ? 'bg-amber-600' : 'bg-neutral-700'
+            checked ? 'bg-amber-600' : 'bg-zinc-700'
           }`}
         />
         <div
@@ -1171,7 +1171,7 @@ function ToggleSwitch({
           {label}
         </div>
         {description && (
-          <div className="text-xs text-neutral-500 mt-0.5">{description}</div>
+          <div className="text-xs text-zinc-500 mt-0.5">{description}</div>
         )}
       </div>
     </label>
