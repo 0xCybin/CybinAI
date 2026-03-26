@@ -147,28 +147,30 @@ Use this to find specific information about services, pricing, policies, etc."""
 
 
 def get_available_tools(
+    tier: int = 1,
     include_scheduling: bool = True,
     include_knowledge_base: bool = True,
     include_escalation: bool = True,
 ) -> list[LLMTool]:
     """
     Get list of tools available for a conversation.
-    
+
     Different businesses may have different tools enabled.
+    Tier controls which tools are unlocked:
+      - Tier 1: KB search, escalation, callback only
+      - Tier 2+: Also scheduling tools
     """
     tools = []
-    
-    if include_scheduling:
-        tools.extend([
-            TOOL_DEFINITIONS["schedule_appointment"],
-            TOOL_DEFINITIONS["check_appointment_status"],
-            TOOL_DEFINITIONS["request_callback"],
-        ])
-    
+
     if include_knowledge_base:
         tools.append(TOOL_DEFINITIONS["search_knowledge_base"])
-    
+
     if include_escalation:
         tools.append(TOOL_DEFINITIONS["escalate_to_human"])
-    
+        tools.append(TOOL_DEFINITIONS["request_callback"])
+
+    if tier >= 2 and include_scheduling:
+        tools.append(TOOL_DEFINITIONS["schedule_appointment"])
+        tools.append(TOOL_DEFINITIONS["check_appointment_status"])
+
     return tools

@@ -44,7 +44,7 @@ class OpenAIProvider(LLMProvider):
     
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or settings.OPENAI_API_KEY
-        self.model = model or self.DEFAULT_MODEL
+        self.model = model or settings.OPENAI_CHAT_MODEL  # defaults to "gpt-4o-mini"
         
         if not self.api_key:
             raise ValueError("OpenAI API key not configured. Set OPENAI_API_KEY.")

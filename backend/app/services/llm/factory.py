@@ -39,7 +39,10 @@ def get_llm_provider(
     Raises:
         ValueError: If provider is not supported
     """
-    name = provider_name or settings.LLM_PROVIDER
+    """Get LLM provider by name. Defaults to OpenAI (GPT-4o Mini)."""
+    if provider_name is None:
+        provider_name = settings.LLM_PROVIDER if settings.LLM_PROVIDER else "openai"
+    name = provider_name
     
     # Lazy import to avoid circular dependencies
     if not _providers:

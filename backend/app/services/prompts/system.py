@@ -49,88 +49,56 @@ Help customers by answering their questions, providing information, and connecti
 
 
 def get_system_prompt(
-    business_name: str = "our company",
-    business_type: Optional[str] = None,  # No longer used for hardcoded context
+    business_name: str = "the company",
+    business_type: str = "general",
     additional_context: Optional[str] = None,
     knowledge_base_context: Optional[str] = None,
+    tier: int = 1,
 ) -> str:
     """
     Build the complete system prompt for a conversation.
-    
+
     All business-specific information comes from the knowledge_base_context.
     No hardcoded industry assumptions.
-    
+
     Args:
         business_name: Name of the business
         business_type: Optional, stored but not used for hardcoded prompts
         additional_context: Custom instructions from business owner
         knowledge_base_context: KB articles relevant to this conversation
-        
+        tier: Capability tier (1=basic, 2=scheduling, 3=full)
+
     Returns:
         Complete system prompt string
     """
-    current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
-    
-    parts = [
-        get_base_system_prompt(business_name),
-    ]
-    
-    # Add current time context
-    parts.append(f"""
-## Current Time
-It is currently {current_time}.
-""")
-    
-    # Add knowledge base context - this is where ALL business info comes from
-    if knowledge_base_context:
-        parts.append(f"""
-## Business Knowledge Base
+    tier_instructions = {
+        1: (
+            "You can ONLY: answer questions using the knowledge base, take messages, "
+            "and offer to have someone call the customer back. "
+            "Do NOT book appointments or take actions beyond answering questions and taking messages."
+        ),
+        2: (
+            "You can: answer questions, take messages, AND book appointments, "
+            "send confirmations, and answer detailed service questions. "
+            "Do NOT handle cancellations, complaints, or proactive follow-ups."
+        ),
+        3: (
+            "You can handle all customer interactions: answer questions, book/reschedule/cancel appointments, "
+            "handle basic complaints using the HEARD framework, follow up with leads, "
+            "and request reviews after service."
+        ),
+    }
 
-Below is the ONLY verified information about {business_name}. Use ONLY this information to answer customer questions.
+    prompt = get_base_system_prompt(business_name)
+    prompt += f"\n\n## Your Capabilities (Tier {tier})\n{tier_instructions.get(tier, tier_instructions[1])}"
 
-=== START KNOWLEDGE BASE ===
-{knowledge_base_context}
-=== END KNOWLEDGE BASE ===
-
-## CRITICAL RULES:
-
-1. **ONLY use information from the knowledge base above.** If a customer asks about something not covered (like a location, service, or price not mentioned), do NOT guess or make it up.
-
-2. **For questions you can't answer from the KB:**
-   - DO NOT say "I don't know" or "I'm not sure"
-   - Instead, offer to connect them with the team
-   - Collect their name and phone number for a callback
-   - Example: "I want to make sure you get accurate information on that. Can I have someone from our team call you back? I just need your name and phone number."
-
-3. **Service Area Questions:** If a customer asks about a location NOT explicitly listed in the knowledge base, say: "I don't see [location] in our current service area information. Let me have someone from our team confirm that for you. Can I get your name and number?"
-
-4. **Pricing Questions:** Only quote prices explicitly stated in the KB. For anything else: "I'd want to give you an accurate quote for that. Can I have someone reach out to you with specific pricing?"
-
-5. **Be helpful, not robotic.** Even when you can't answer directly, guide the customer toward getting the help they need.
-""")
-    else:
-        # No KB context - AI should collect info and offer callback
-        parts.append(f"""
-## Important
-
-I don't have detailed business information loaded yet. For any specific questions about services, pricing, hours, or service areas, I should offer to connect the customer with the team.
-
-When I can't answer a question:
-- Offer to have someone call them back
-- Collect their name and phone number
-- Be friendly and helpful, not dismissive
-
-Example: "I'd want to make sure you get accurate information. Can I have someone from our team reach out to you? I just need your name and the best number to call."
-""")
-    
-    # Add custom business instructions if provided
     if additional_context:
-        parts.append(f"""
-## Additional Instructions from Business Owner
-{additional_context}
-""")
-    
-    return "\n".join(parts)
+        prompt += f"\n\n## Additional Business Context\n{additional_context}"
+
+    if knowledge_base_context:
+        prompt += f"\n\n## Knowledge Base (Use this to answer questions)\n{knowledge_base_context}"
+
+    return prompt
 
 
 # Keep this for backwards compatibility but it's no longer used

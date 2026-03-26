@@ -29,6 +29,35 @@ from app.services.prompts import get_system_prompt, get_available_tools
 logger = logging.getLogger(__name__)
 
 
+def calculate_confidence(
+    has_kb_context: bool,
+    tool_calls: list[str],
+    should_escalate: bool,
+    response_length: int,
+) -> float:
+    """Calculate confidence score (0.0-1.0) for an AI response."""
+    if should_escalate:
+        return 0.3
+
+    score = 0.5  # Base
+
+    if has_kb_context:
+        score += 0.25
+
+    if "search_knowledge_base" in tool_calls:
+        score += 0.1
+
+    if "schedule_appointment" in tool_calls:
+        score += 0.05
+
+    if response_length < 10:
+        score -= 0.15
+    elif response_length > 30:
+        score += 0.05
+
+    return max(0.0, min(1.0, score))
+
+
 @dataclass
 class AIResponse:
     """Response from the AI service."""
@@ -47,6 +76,7 @@ class AIResponse:
     estimated_cost: float = 0.0
     provider: str = ""
     model: str = ""
+    confidence_score: float = 0.0
 
 
 @dataclass
@@ -129,7 +159,24 @@ class AIService:
         
         # Add the new customer message
         messages.append(LLMMessage(role=MessageRole.USER, content=customer_message))
-        
+
+        # RAG: Search knowledge base for relevant context
+        if not knowledge_context and self.db:
+            try:
+                from app.services.embedding_service import EmbeddingService
+                embed_service = EmbeddingService(self.db)
+                results = await embed_service.search_similar(
+                    tenant_id=self.tenant_id,
+                    query=customer_message,
+                    limit=3,
+                )
+                if results:
+                    knowledge_context = "\n\n".join(
+                        f"[KB] {r['text']}" for r in results if r["score"] > 0.3
+                    )
+            except Exception as e:
+                logger.warning(f"RAG search failed, continuing without: {e}")
+
         # Call the LLM
         try:
             response = await self.llm.complete(
@@ -140,7 +187,15 @@ class AIService:
             )
             
             ai_response = self._process_response(response)
-            
+
+            has_kb = knowledge_context is not None and len(knowledge_context) > 0
+            ai_response.confidence_score = calculate_confidence(
+                has_kb_context=has_kb,
+                tool_calls=[tc.name for tc in ai_response.tool_calls],
+                should_escalate=ai_response.should_escalate,
+                response_length=len(ai_response.content),
+            )
+
             # If there are tool calls that need execution, execute them
             if ai_response.requires_action and ai_response.tool_calls:
                 tool_results = {}
