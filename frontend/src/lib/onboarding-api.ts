@@ -1,7 +1,9 @@
+import { getAccessToken } from './api';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 async function onboardingRequest(path: string, options: RequestInit = {}) {
-  const token = localStorage.getItem("access_token");
+  const token = getAccessToken() || localStorage.getItem("access_token");
   const res = await fetch(`${API_BASE}/api/v1/onboarding${path}`, {
     ...options,
     headers: {

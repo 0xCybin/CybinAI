@@ -1,28 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth, useRequireAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Loader2, Check, ArrowRight, BookOpen, Settings, BarChart3 } from 'lucide-react';
+import { Loader2, Check, ArrowRight, BookOpen, Settings, BarChart3, Copy } from 'lucide-react';
 import { SummaryCard } from '@/components/dashboard/SummaryCard';
 
 const onboardingSteps = [
-  { id: 'business', label: 'Set up business info', href: '/onboarding?step=1' },
-  { id: 'services', label: 'Add services & pricing', href: '/onboarding?step=2' },
-  { id: 'knowledge', label: 'Build FAQ knowledge base', href: '/admin/knowledge-base' },
-  { id: 'channels', label: 'Configure channels', href: '/admin/settings' },
-  { id: 'test', label: 'Test your AI', href: '/demo/widget' },
-  { id: 'live', label: 'Go live', href: '/onboarding?step=6' },
+  { id: 'business', label: 'Set up business info', href: '/onboarding' },
+  { id: 'services', label: 'Add services & pricing', href: '/onboarding' },
+  { id: 'knowledge', label: 'Build FAQ knowledge base', href: '/onboarding' },
+  { id: 'channels', label: 'Configure channels', href: '/onboarding' },
+  { id: 'test', label: 'Test your AI', href: '/onboarding' },
+  { id: 'live', label: 'Go live', href: '/onboarding' },
 ];
 
 export default function DashboardPage() {
   const { user, tenant, isLoading } = useAuth();
   const { isAuthenticated } = useRequireAuth();
 
-  // TODO: pull real completion state from API
-  const [completedSteps] = useState<string[]>([]);
-  const onboardingComplete = completedSteps.length >= onboardingSteps.length;
-  const progressPercent = Math.round((completedSteps.length / onboardingSteps.length) * 100);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOnboardingComplete(localStorage.getItem('mykodesk_onboarding_complete') === 'true');
+    }
+  }, []);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -32,6 +36,16 @@ export default function DashboardPage() {
     );
   }
 
+  const businessSlug = (tenant?.name || 'your-business').toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const embedCode = `<script src="https://cdn.cybinai.com/widget.js" data-business="${businessSlug}" defer></script>`;
+
+  function copyEmbed() {
+    navigator.clipboard.writeText(embedCode).then(() => {
+      setEmbedCopied(true);
+      setTimeout(() => setEmbedCopied(false), 2000);
+    });
+  }
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -39,6 +53,61 @@ export default function DashboardPage() {
     day: 'numeric',
   });
 
+  // =========================================================================
+  // ONBOARDING NOT COMPLETE -- show setup-focused dashboard
+  // =========================================================================
+  if (!onboardingComplete) {
+    return (
+      <div className="min-h-screen bg-zinc-950">
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+              Welcome, {user?.name?.split(' ')[0]}
+            </h1>
+            <p className="text-zinc-500 mt-1 text-sm">{today}</p>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-white mb-1">Complete setup to activate your AI assistant</h2>
+                <p className="text-zinc-400 text-sm">
+                  Your AI can't start helping customers until setup is finished. It only takes a few minutes.
+                </p>
+              </div>
+
+              <div className="space-y-2 mb-8">
+                {onboardingSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg bg-zinc-800"
+                  >
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-zinc-600">
+                    </div>
+                    <span className="text-sm font-medium text-zinc-200 flex-1">
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/onboarding"
+                className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-8 py-4 rounded-lg text-base font-semibold transition-colors w-full justify-center"
+              >
+                Continue Setup
+                <ArrowRight size={18} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // ONBOARDING COMPLETE -- full dashboard
+  // =========================================================================
   return (
     <div className="min-h-screen bg-zinc-950">
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -58,85 +127,35 @@ export default function DashboardPage() {
                   <span className="text-sm font-medium text-zinc-300">{tenant.name}</span>
                 </div>
               )}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
-                onboardingComplete
-                  ? 'bg-emerald-500/10 border-emerald-500/20'
-                  : 'bg-amber-500/10 border-amber-500/20'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${onboardingComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                <span className={`text-sm font-medium ${onboardingComplete ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {onboardingComplete ? 'AI Online' : 'Setup Required'}
-                </span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-emerald-500/10 border-emerald-500/20">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-sm font-medium text-emerald-400">Your AI is active</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Onboarding Checklist (hero when incomplete) */}
-        {!onboardingComplete && (
-          <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-1">Get your AI assistant ready</h2>
-                  <p className="text-zinc-400 text-sm">
-                    Complete these steps so your AI can start handling customer conversations.
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-2xl font-bold text-amber-500">{progressPercent}%</span>
-                  <div className="w-32 bg-zinc-800 rounded-full h-2">
-                    <div
-                      className="bg-amber-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                </div>
+        {/* Embed Code Banner */}
+        <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-white font-semibold mb-1">Your chat widget code</h3>
+              <p className="text-sm text-zinc-400 mb-3">
+                Add this to your website before the closing &lt;/body&gt; tag. Your AI will start answering customers immediately.
+              </p>
+              <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3">
+                <code className="text-sm text-emerald-400 font-mono break-all">{embedCode}</code>
               </div>
-
-              <div className="space-y-2 mb-6">
-                {onboardingSteps.map((step) => {
-                  const done = completedSteps.includes(step.id);
-                  return (
-                    <Link
-                      key={step.id}
-                      href={step.href}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group ${
-                        done
-                          ? 'bg-zinc-800/50'
-                          : 'bg-zinc-800 hover:bg-zinc-700/80'
-                      }`}
-                    >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        done
-                          ? 'bg-emerald-500'
-                          : 'border-2 border-zinc-600 group-hover:border-amber-500'
-                      }`}>
-                        {done && <Check size={14} className="text-white" />}
-                      </div>
-                      <span className={`text-sm font-medium flex-1 ${
-                        done ? 'text-zinc-500 line-through' : 'text-zinc-200 group-hover:text-white'
-                      }`}>
-                        {step.label}
-                      </span>
-                      {!done && (
-                        <ArrowRight size={16} className="text-zinc-600 group-hover:text-amber-500 transition-colors" />
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-
-              <Link
-                href="/onboarding"
-                className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-colors"
-              >
-                Continue Setup
-                <ArrowRight size={16} />
-              </Link>
             </div>
+            <button
+              onClick={copyEmbed}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Copy size={14} />
+              {embedCopied ? "Copied!" : "Copy"}
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -167,115 +186,94 @@ export default function DashboardPage() {
         </div>
 
         {/* AI Health + Recent Conversations */}
-        {onboardingComplete && (
-          <div className="grid lg:grid-cols-2 gap-6 mb-8">
-            {/* AI Health */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">AI Status</h2>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                </div>
-                <div>
-                  <p className="text-white font-medium">Your AI is active and handling conversations</p>
-                  <p className="text-zinc-500 text-sm mt-1">Responding across all configured channels. Average response time under 30 seconds.</p>
-                </div>
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          {/* AI Health */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">AI Status</h2>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full" />
               </div>
-            </div>
-
-            {/* Recent Conversations */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Recent Conversations</h2>
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-                  <MessageSquareIcon />
-                </div>
-                <p className="text-zinc-300 font-medium mb-1">No conversations yet</p>
-                <p className="text-zinc-500 text-sm max-w-xs">
-                  Once customers reach out, their conversations will appear here.
-                </p>
+              <div>
+                <p className="text-white font-medium">Your AI is active and handling conversations</p>
+                <p className="text-zinc-500 text-sm mt-1">Responding across all configured channels. Average response time under 30 seconds.</p>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Two Column Layout - Activity + Quick Actions */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          {/* Recent Activity (shown when onboarding incomplete) */}
-          {!onboardingComplete && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-                  <MessageSquareIcon />
-                </div>
-                <p className="text-zinc-300 font-medium mb-1">No conversations yet</p>
-                <p className="text-zinc-500 text-sm mb-5 max-w-xs">
-                  Complete onboarding to get started. Once customers reach out, their conversations will appear here.
-                </p>
-                <Link
-                  href="/onboarding"
-                  className="text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
-                >
-                  Complete onboarding
-                </Link>
+          {/* Recent Conversations */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Recent Conversations</h2>
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+                <MessageSquareIcon />
               </div>
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          <div className={`bg-zinc-900 border border-zinc-800 rounded-xl p-6 ${onboardingComplete ? 'lg:col-span-2' : ''}`}>
-            <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Link
-                href="/agent"
-                className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
-              >
-                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <InboxIcon />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">View Inbox</p>
-                  <p className="text-zinc-500 text-xs">See all conversations</p>
-                </div>
-              </Link>
-              <Link
-                href="/admin/knowledge-base/new"
-                className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
-              >
-                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <PlusIcon />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Add FAQ</p>
-                  <p className="text-zinc-500 text-xs">Teach your AI</p>
-                </div>
-              </Link>
-              <Link
-                href="/admin/settings"
-                className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
-              >
-                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <GearIcon />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">AI Settings</p>
-                  <p className="text-zinc-500 text-xs">Configure behavior</p>
-                </div>
-              </Link>
+              <p className="text-zinc-300 font-medium mb-1">Waiting for your first conversation</p>
+              <p className="text-zinc-500 text-sm max-w-xs">
+                Once the chat widget is on your website and a customer sends a message, it will show up here.
+              </p>
               <Link
                 href="/demo/widget"
-                className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+                className="mt-4 text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
               >
-                <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <WidgetIcon />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Widget Demo</p>
-                  <p className="text-zinc-500 text-xs">Preview chat widget</p>
-                </div>
+                Test it yourself
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link
+              href="/agent"
+              className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <InboxIcon />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">View Inbox</p>
+                <p className="text-zinc-500 text-xs">See all conversations</p>
+              </div>
+            </Link>
+            <Link
+              href="/admin/knowledge-base/new"
+              className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <PlusIcon />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Add FAQ</p>
+                <p className="text-zinc-500 text-xs">Teach your AI</p>
+              </div>
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <GearIcon />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">AI Settings</p>
+                <p className="text-zinc-500 text-xs">Configure behavior</p>
+              </div>
+            </Link>
+            <Link
+              href="/demo/widget"
+              className="flex items-center gap-3 px-4 py-3.5 bg-zinc-800 hover:bg-zinc-700/80 border border-zinc-700/50 rounded-lg transition-colors group"
+            >
+              <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <WidgetIcon />
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium group-hover:text-amber-500 transition-colors">Widget Demo</p>
+                <p className="text-zinc-500 text-xs">Preview chat widget</p>
+              </div>
+            </Link>
           </div>
         </div>
 

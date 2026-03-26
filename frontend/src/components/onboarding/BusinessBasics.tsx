@@ -1,27 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const INDUSTRIES = [
-  "Grooming",
-  "HVAC",
-  "Dental",
-  "Cleaning",
-  "Landscaping",
-  "Salon",
-  "Restaurant",
-  "Auto Repair",
-  "Other",
+  { value: "Grooming", label: "Pet Grooming", desc: "Dog grooming, cat grooming, mobile pet care" },
+  { value: "HVAC", label: "HVAC / Heating & Cooling", desc: "AC repair, furnace install, maintenance plans" },
+  { value: "Dental", label: "Dental Practice", desc: "Cleanings, exams, cosmetic dentistry" },
+  { value: "Cleaning", label: "Cleaning Services", desc: "House cleaning, office cleaning, deep cleans" },
+  { value: "Landscaping", label: "Landscaping", desc: "Lawn care, tree trimming, hardscaping" },
+  { value: "Salon", label: "Hair Salon / Barber", desc: "Haircuts, coloring, styling, treatments" },
+  { value: "Restaurant", label: "Restaurant / Food Service", desc: "Dine-in, takeout, catering, reservations" },
+  { value: "Auto Repair", label: "Auto Repair", desc: "Oil changes, brake service, diagnostics" },
+  { value: "Other", label: "Other", desc: "Any service business not listed above" },
 ];
 
 const TIMEZONES = [
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Anchorage",
-  "Pacific/Honolulu",
+  { value: "America/New_York", label: "Eastern Time" },
+  { value: "America/Chicago", label: "Central Time" },
+  { value: "America/Denver", label: "Mountain Time" },
+  { value: "America/Los_Angeles", label: "Pacific Time" },
+  { value: "America/Anchorage", label: "Alaska Time" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time" },
 ];
+
+function detectTimezone(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (TIMEZONES.some((t) => t.value === tz)) return tz;
+    // Map common US timezones
+    if (tz.includes("Eastern") || tz.includes("New_York")) return "America/New_York";
+    if (tz.includes("Central") || tz.includes("Chicago")) return "America/Chicago";
+    if (tz.includes("Mountain") || tz.includes("Denver")) return "America/Denver";
+    if (tz.includes("Pacific") || tz.includes("Los_Angeles")) return "America/Los_Angeles";
+  } catch {}
+  return "America/Chicago";
+}
 
 interface BusinessBasicsProps {
   onNext: (data: any) => void;
@@ -38,12 +51,14 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, timezone: detectTimezone() }));
+  }, []);
+
   function validate() {
     const e: Record<string, string> = {};
     if (!form.business_name.trim()) e.business_name = "Required";
     if (!form.industry) e.industry = "Required";
-    if (!form.phone.trim()) e.phone = "Required";
-    if (!form.address.trim()) e.address = "Required";
     return e;
   }
 
@@ -59,6 +74,8 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
 
   const inputClasses = "w-full min-h-[48px] px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 transition-colors";
   const labelClasses = "block text-sm font-medium text-zinc-300 mb-1.5";
+
+  const selectedIndustry = INDUSTRIES.find((i) => i.value === form.industry);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -81,7 +98,7 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
       </div>
 
       <div>
-        <label htmlFor="industry" className={labelClasses}>Industry</label>
+        <label htmlFor="industry" className={labelClasses}>What kind of business do you run?</label>
         <select
           id="industry"
           value={form.industry}
@@ -90,14 +107,23 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
         >
           <option value="">Select your industry</option>
           {INDUSTRIES.map((ind) => (
-            <option key={ind} value={ind}>{ind}</option>
+            <option key={ind.value} value={ind.value}>{ind.label} -- {ind.desc}</option>
           ))}
         </select>
         {errors.industry && <p className="text-red-400 text-xs mt-1">{errors.industry}</p>}
+        {selectedIndustry && selectedIndustry.value !== "Other" && (
+          <div className="mt-3 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+            <p className="text-sm text-amber-200">
+              Great! We'll pre-fill common services and FAQs for {selectedIndustry.label.toLowerCase()} businesses. You can customize everything.
+            </p>
+          </div>
+        )}
       </div>
 
       <div>
-        <label htmlFor="phone" className={labelClasses}>Phone Number</label>
+        <label htmlFor="phone" className={labelClasses}>
+          Phone Number <span className="text-zinc-500 font-normal">-- helps customers find you</span>
+        </label>
         <input
           id="phone"
           type="text"
@@ -106,11 +132,12 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
           placeholder="(555) 123-4567"
           className={inputClasses}
         />
-        {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
       </div>
 
       <div>
-        <label htmlFor="address" className={labelClasses}>Business Address</label>
+        <label htmlFor="address" className={labelClasses}>
+          Business Address <span className="text-zinc-500 font-normal">-- helps customers find you</span>
+        </label>
         <input
           id="address"
           type="text"
@@ -119,7 +146,6 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
           placeholder="123 Main St, Anytown, TX 75001"
           className={inputClasses}
         />
-        {errors.address && <p className="text-red-400 text-xs mt-1">{errors.address}</p>}
       </div>
 
       <div>
@@ -137,7 +163,9 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
       </div>
 
       <div>
-        <label htmlFor="timezone" className={labelClasses}>Timezone</label>
+        <label htmlFor="timezone" className={labelClasses}>
+          Timezone <span className="text-zinc-500 font-normal">-- auto-detected from your browser</span>
+        </label>
         <select
           id="timezone"
           value={form.timezone}
@@ -145,7 +173,7 @@ export default function BusinessBasics({ onNext }: BusinessBasicsProps) {
           className={inputClasses}
         >
           {TIMEZONES.map((tz) => (
-            <option key={tz} value={tz}>{tz}</option>
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
           ))}
         </select>
       </div>

@@ -13,6 +13,7 @@ interface ServicesSetupProps {
   onNext: (services: Service[]) => void;
   onBack: () => void;
   defaults?: any[];
+  industry?: string;
 }
 
 const emptyService = (): Service => ({
@@ -22,8 +23,9 @@ const emptyService = (): Service => ({
   price_max: "",
 });
 
-export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetupProps) {
+export default function ServicesSetup({ onNext, onBack, defaults, industry }: ServicesSetupProps) {
   const [services, setServices] = useState<Service[]>([emptyService()]);
+  const [hasDefaults, setHasDefaults] = useState(false);
 
   useEffect(() => {
     if (defaults && defaults.length > 0) {
@@ -35,6 +37,7 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
           price_max: d.price_max != null ? String(d.price_max) : "",
         }))
       );
+      setHasDefaults(true);
     }
   }, [defaults]);
 
@@ -58,19 +61,27 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
     onNext(filled);
   }
 
+  const industryLabel = industry ? industry.toLowerCase() : "your industry";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <h2 className="text-2xl font-semibold text-white">Services &amp; Pricing</h2>
-        <p className="text-zinc-400 mt-1">
-          These are suggestions based on your industry. Edit, add, or remove as needed.
-        </p>
+        <h2 className="text-2xl font-bold text-white">Services & Pricing</h2>
+        {hasDefaults ? (
+          <p className="text-zinc-400 mt-1">
+            We've added common {industryLabel} services to get you started. Edit prices to match yours, add or remove as needed.
+          </p>
+        ) : (
+          <p className="text-zinc-400 mt-1">
+            Add the services you offer. Your AI will use these to answer pricing questions from customers.
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">
         {services.map((service, i) => (
           <div key={i} className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 space-y-3">
-            <div className="flex gap-3">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <label className="block text-xs font-medium text-zinc-400 mb-1">Service Name</label>
                 <input
@@ -83,10 +94,10 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
               <button
                 type="button"
                 onClick={() => removeRow(i)}
-                className="self-end min-h-[44px] px-3 text-zinc-500 hover:text-red-400 transition-colors text-lg"
-                title="Remove"
+                className="mt-5 min-w-[36px] min-h-[36px] flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors text-sm"
+                title="Remove this service"
               >
-                ×
+                Remove
               </button>
             </div>
 
@@ -95,29 +106,29 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
               <input
                 value={service.description}
                 onChange={(e) => update(i, "description", e.target.value)}
-                placeholder="Brief description"
-                className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-sm"
+                placeholder="Brief description of what's included"
+                className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
               />
             </div>
 
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Min Price ($)</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Starting Price ($)</label>
                 <input
                   type="number"
                   value={service.price_min}
                   onChange={(e) => update(i, "price_min", e.target.value)}
-                  placeholder="0"
+                  placeholder="e.g. 50"
                   className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Max Price ($)</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Up To ($)</label>
                 <input
                   type="number"
                   value={service.price_max}
                   onChange={(e) => update(i, "price_max", e.target.value)}
-                  placeholder="0"
+                  placeholder="e.g. 150"
                   className="w-full min-h-[44px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 text-sm transition-colors"
                 />
               </div>
@@ -129,9 +140,9 @@ export default function ServicesSetup({ onNext, onBack, defaults }: ServicesSetu
       <button
         type="button"
         onClick={addRow}
-        className="w-full min-h-[44px] border border-dashed border-zinc-600 rounded-lg text-zinc-400 hover:text-white hover:border-zinc-400 transition-colors text-sm"
+        className="w-full min-h-[48px] border-2 border-dashed border-zinc-600 rounded-lg text-amber-500 hover:text-amber-400 hover:border-amber-500/50 transition-colors text-sm font-medium"
       >
-        + Add Service
+        + Add Another Service
       </button>
 
       <div className="flex gap-3 pt-4">

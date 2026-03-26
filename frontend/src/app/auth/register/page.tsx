@@ -64,12 +64,14 @@ export default function RegisterPage() {
         throw new Error(data.detail || 'Registration failed');
       }
 
-      // Store tokens
+      // Store tokens (both keys for compatibility)
+      localStorage.setItem('cybinai_access_token', data.tokens.access_token);
+      localStorage.setItem('cybinai_refresh_token', data.tokens.refresh_token);
       localStorage.setItem('access_token', data.tokens.access_token);
       localStorage.setItem('refresh_token', data.tokens.refresh_token);
 
       // Use window.location for full page reload so AuthContext picks up the tokens
-      window.location.href = '/dashboard';
+      window.location.href = '/onboarding';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
       setLoading(false);

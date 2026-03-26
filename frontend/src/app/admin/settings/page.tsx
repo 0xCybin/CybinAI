@@ -230,7 +230,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-xl font-bold">Settings</h1>
             <p className="text-sm text-zinc-500">
-              Configure your business and chat widget
+              Control how your AI behaves, what it looks like, and when it notifies you.
             </p>
           </div>
         </div>

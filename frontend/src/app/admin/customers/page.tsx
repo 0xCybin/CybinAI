@@ -182,6 +182,9 @@ export default function CustomersPage() {
             Customers
           </h1>
           <p className="text-zinc-400 mt-1">
+            Customer profiles are created automatically when someone reaches out. You can see their full conversation history here.
+          </p>
+          <p className="text-zinc-500 text-xs mt-1">
             {total} {total === 1 ? 'customer' : 'customers'} total
           </p>
         </div>

@@ -91,7 +91,7 @@ export default function KnowledgeBasePage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">Knowledge Base</h1>
-            <p className="text-zinc-400 mt-1">Manage articles that train your AI assistant</p>
+            <p className="text-zinc-400 mt-1">Your AI uses these articles to answer customer questions. The more you add, the smarter it gets.</p>
           </div>
           <Link
             href="/admin/knowledge-base/new"

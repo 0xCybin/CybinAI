@@ -19,14 +19,14 @@ async def lifespan(app: FastAPI):
     Startup and shutdown logic goes here.
     """
     # Startup
-    print(f"🚀 Starting MykoDesk API in {settings.ENVIRONMENT} mode")
-    print(f"🔌 WebSocket server available at /ws/socket.io")
+    print(f"Starting MykoDesk API in {settings.ENVIRONMENT} mode")
+    print(f"WebSocket server available at /ws/socket.io")
     # TODO: Initialize database connection pool
     # TODO: Initialize Redis connection
     # TODO: Initialize AI service
     yield
     # Shutdown
-    print("👋 Shutting down MykoDesk API")
+    print("Shutting down MykoDesk API")
     # TODO: Close database connections
     # TODO: Close Redis connections
 

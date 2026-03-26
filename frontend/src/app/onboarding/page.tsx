@@ -99,6 +99,7 @@ export default function OnboardingPage() {
     setError(null);
     try {
       await completeOnboarding();
+      localStorage.setItem("mykodesk_onboarding_complete", "true");
       router.push("/dashboard");
     } catch {
       setError("Failed to complete setup. Please try again.");
@@ -139,6 +140,7 @@ export default function OnboardingPage() {
               onNext={handleServices}
               onBack={() => setStep(1)}
               defaults={industryDefaults?.services}
+              industry={businessInfo?.industry}
             />
           )}
 
@@ -147,6 +149,7 @@ export default function OnboardingPage() {
               onNext={handleFAQs}
               onBack={() => setStep(2)}
               defaults={industryDefaults?.faqs}
+              industry={businessInfo?.industry}
             />
           )}
 
@@ -161,7 +164,9 @@ export default function OnboardingPage() {
             <TestConversation
               onNext={() => setStep(6)}
               onBack={() => setStep(4)}
+              onGoToFAQs={() => setStep(3)}
               businessName={businessInfo?.business_name}
+              industry={businessInfo?.industry}
             />
           )}
 
