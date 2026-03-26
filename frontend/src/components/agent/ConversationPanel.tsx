@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Send, RotateCcw, UserPlus, Loader2, StickyNote, Trash2, AlertCircle } from 'lucide-react';
 import { getAccessToken } from '@/lib/api';
+import TagPicker, { TagType, TagDisplay } from './TagPicker';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -77,6 +78,7 @@ interface ConversationDetail {
   assigned_to_name: string | null;
   messages: Message[];
   internal_notes?: InternalNote[];
+  tags?: TagType[];
   customer: {
     id: string;
     name: string;
@@ -277,51 +279,40 @@ function InternalNotesPanel({
     }
   };
 
-  const canDelete = (note: InternalNote) => {
-    return note.author.id === currentUserId || 
-           currentUserRole === 'admin' || 
-           currentUserRole === 'owner';
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   return (
     <div className="flex flex-col h-full">
-      {error && (
-        <div className="mx-4 mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400 text-sm">
-          <AlertCircle className="w-4 h-4" />
-          {error}
-          <button onClick={() => setError(null)} className="ml-auto text-red-300 hover:text-red-200">×</button>
-        </div>
-      )}
-
+      {/* Notes List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {notes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-neutral-500">
-            <StickyNote className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">No internal notes yet</p>
-            <p className="text-xs mt-1">Add notes visible only to your team</p>
+          <div className="text-center py-8">
+            <StickyNote className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+            <p className="text-neutral-500 text-sm">No internal notes yet</p>
+            <p className="text-neutral-600 text-xs mt-1">
+              Add notes visible only to your team
+            </p>
           </div>
         ) : (
           notes.map((note) => (
-            <div key={note.id} className="group bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
+            <div
+              key={note.id}
+              className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3"
+            >
+              <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  {note.author.avatar_url ? (
-                    <img
-                      src={note.author.avatar_url}
-                      alt={note.author.name}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-amber-600 flex items-center justify-center text-xs font-medium text-white">
-                      {getInitials(note.author.name)}
-                    </div>
-                  )}
+                  <div className="w-6 h-6 rounded-full bg-amber-900/50 flex items-center justify-center">
+                    <span className="text-xs font-medium text-amber-400">
+                      {note.author.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
                   <div>
-                    <span className="text-sm font-medium text-amber-400">
+                    <span className="text-sm font-medium text-amber-300">
                       {note.author.name}
                     </span>
                     <span className="text-xs text-neutral-500 ml-2">
@@ -329,19 +320,17 @@ function InternalNotesPanel({
                     </span>
                   </div>
                 </div>
-                
-                {canDelete(note) && (
+                {note.author.id === currentUserId && (
                   <button
                     onClick={() => handleDelete(note.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-neutral-500 hover:text-red-400 transition-all"
+                    className="text-neutral-500 hover:text-red-400 transition-colors p-1"
                     title="Delete note"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>
-
-              <p className="text-sm text-neutral-200 whitespace-pre-wrap">
+              <p className="text-sm text-neutral-300 whitespace-pre-wrap">
                 {note.content}
               </p>
             </div>
@@ -350,25 +339,30 @@ function InternalNotesPanel({
         <div ref={notesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-neutral-800">
-        <div className="flex gap-2">
+      {/* New Note Input */}
+      {error && (
+        <div className="mx-4 mb-2 p-2 bg-red-900/30 border border-red-800/50 rounded-lg flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span className="text-sm text-red-300">{error}</span>
+        </div>
+      )}
+      <form
+        onSubmit={handleSubmit}
+        className="border-t border-neutral-800 p-4 bg-[#1E1C19]"
+      >
+        <div className="flex items-end gap-2">
           <textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Add an internal note..."
-            className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 resize-none focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
             rows={2}
-            disabled={isSending}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                handleSubmit(e);
-              }
-            }}
+            className="flex-1 px-4 py-2 bg-[#131210] border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 resize-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none text-sm"
           />
           <button
             type="submit"
             disabled={!newNote.trim() || isSending}
-            className="self-end px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-neutral-700 disabled:cursor-not-allowed rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
+            className="p-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -504,8 +498,46 @@ export function ConversationPanel({
   const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([]);
   const [cannedLoading, setCannedLoading] = useState(false);
 
+  // Tags state - local copy for optimistic updates
+  const [tags, setTags] = useState<TagType[]>(conversation.tags || []);
+  const [tagsLoading, setTagsLoading] = useState(false);
+
   const isAssignedToMe = conversation.assigned_to === currentUserId;
   const isAIHandled = conversation.ai_handled;
+
+  // Fetch tags when conversation changes (backend might not return them)
+  useEffect(() => {
+    // If conversation already has tags, use them
+    if (conversation.tags && conversation.tags.length > 0) {
+      setTags(conversation.tags);
+      return;
+    }
+
+    // Otherwise fetch from API
+    const fetchTags = async () => {
+      try {
+        setTagsLoading(true);
+        const token = localStorage.getItem('cybinai_access_token') || getAccessToken();
+        const res = await fetch(
+          `${API_URL}/api/v1/tags/conversations/${conversation.id}/tags`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          // API returns { conversation_id, tags: [...] }
+          setTags(data.tags || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch conversation tags:', err);
+      } finally {
+        setTagsLoading(false);
+      }
+    };
+
+    fetchTags();
+  }, [conversation.id, conversation.tags]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -640,6 +672,11 @@ export function ConversationPanel({
     }
   };
 
+  const handleTagsChange = (newTags: TagType[]) => {
+    // Optimistic update - the TagPicker handles the API call
+    setTags(newTags);
+  };
+
   const getPriorityBadge = () => {
     const priority = conversation.priority;
     const baseClasses = "px-2 py-0.5 rounded text-xs font-medium";
@@ -660,66 +697,77 @@ export function ConversationPanel({
   return (
     <div className="flex flex-col h-full bg-[#1A1915]">
       {/* Header */}
-      <div className="bg-[#1E1C19] border-b border-neutral-800 p-4 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-neutral-700 flex items-center justify-center">
-            <span className="text-sm font-medium text-neutral-300">
-              {conversation.customer_name?.charAt(0).toUpperCase() || '?'}
-            </span>
+      <div className="bg-[#1E1C19] border-b border-neutral-800 p-4 flex-shrink-0">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-neutral-700 flex items-center justify-center">
+              <span className="text-sm font-medium text-neutral-300">
+                {conversation.customer_name?.charAt(0).toUpperCase() || '?'}
+              </span>
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-neutral-100">{conversation.customer_name}</h2>
+                {getPriorityBadge()}
+                {isAIHandled && (
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 flex items-center gap-1">
+                    <SparklesIcon className="w-3 h-3" />
+                    AI Handling
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-neutral-500">
+                {conversation.customer.email && <span>{conversation.customer.email}</span>}
+                {conversation.customer.phone && (
+                  <>
+                    <span>•</span>
+                    <span>{conversation.customer.phone}</span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
           
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-semibold text-neutral-100">{conversation.customer_name}</h2>
-              {getPriorityBadge()}
-              {isAIHandled && (
-                <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-400 flex items-center gap-1">
-                  <SparklesIcon className="w-3 h-3" />
-                  AI Handling
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-neutral-500">
-              {conversation.customer.email && <span>{conversation.customer.email}</span>}
-              {conversation.customer.phone && (
-                <>
-                  <span>•</span>
-                  <span>{conversation.customer.phone}</span>
-                </>
-              )}
-            </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={conversation.status}
+              onChange={(e) => onStatusChange(e.target.value)}
+              className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-neutral-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none cursor-pointer"
+            >
+              <option value="open">Open</option>
+              <option value="pending">Pending</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+
+            {isAIHandled || !isAssignedToMe ? (
+              <button
+                onClick={onTakeOver}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                Take Over
+              </button>
+            ) : (
+              <button
+                onClick={onReturnToAI}
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 text-sm font-medium rounded-lg transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Return to AI
+              </button>
+            )}
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <select
-            value={conversation.status}
-            onChange={(e) => onStatusChange(e.target.value)}
-            className="text-sm bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-neutral-200 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none cursor-pointer"
-          >
-            <option value="open">Open</option>
-            <option value="pending">Pending</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
-          </select>
 
-          {isAIHandled || !isAssignedToMe ? (
-            <button
-              onClick={onTakeOver}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <UserPlus className="w-4 h-4" />
-              Take Over
-            </button>
-          ) : (
-            <button
-              onClick={onReturnToAI}
-              className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 text-sm font-medium rounded-lg transition-colors"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Return to AI
-            </button>
-          )}
+        {/* Tags Row - NEW */}
+        <div className="mt-3 pt-3 border-t border-neutral-800">
+          <TagPicker
+            conversationId={conversation.id}
+            currentTags={tags}
+            onTagsChange={handleTagsChange}
+          />
         </div>
       </div>
 
@@ -799,35 +847,18 @@ export function ConversationPanel({
                 className="p-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4" />
                 )}
               </button>
             </div>
           </div>
         )}
-
-        {isAIHandled && (
-          <div className="bg-blue-950/30 border-t border-blue-800/30 p-4 flex-shrink-0">
-            <div className="flex items-center justify-center gap-2 text-sm text-blue-400">
-              <SparklesIcon className="w-4 h-4" />
-              <span>This conversation is being handled by AI. Click <strong>Take Over</strong> to respond manually.</span>
-            </div>
-          </div>
-        )}
-
-        {!isAIHandled && !isAssignedToMe && (
-          <div className="bg-neutral-800/50 border-t border-neutral-700 p-4 flex-shrink-0">
-            <p className="text-sm text-neutral-400 text-center">
-              This conversation is assigned to another agent. Click <strong>Take Over</strong> to claim it.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Notes Tab */}
-      <div className={`flex-1 overflow-hidden ${activeTab === 'notes' ? '' : 'hidden'}`}>
+      <div className={`flex-1 flex flex-col overflow-hidden ${activeTab === 'notes' ? '' : 'hidden'}`}>
         <InternalNotesPanel
           conversationId={conversation.id}
           currentUserId={currentUserId || ''}
@@ -838,5 +869,3 @@ export function ConversationPanel({
     </div>
   );
 }
-
-export default ConversationPanel;

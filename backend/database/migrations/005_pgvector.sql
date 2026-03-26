@@ -8,8 +8,11 @@ CREATE TABLE IF NOT EXISTS kb_embeddings (
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     chunk_text TEXT NOT NULL,
     embedding vector(1536),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
+
+CREATE TRIGGER update_kb_embeddings_updated_at BEFORE UPDATE ON kb_embeddings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE INDEX IF NOT EXISTS idx_kb_embeddings_tenant ON kb_embeddings(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_kb_embeddings_article ON kb_embeddings(article_id);
