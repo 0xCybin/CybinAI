@@ -55,8 +55,10 @@ class Settings(BaseSettings):
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
     # OpenAI
-    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
 
     # Anthropic
     ANTHROPIC_API_KEY: Optional[str] = None
