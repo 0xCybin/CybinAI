@@ -19,6 +19,7 @@ from app.api.v1.endpoints import (
     users,
     canned_responses,
     tags,
+    ai_capabilities,
 )
 
 api_router = APIRouter()
@@ -110,4 +111,11 @@ api_router.include_router(
     tags.router,
     prefix="/tags",
     tags=["Tags"]
+)
+
+# AI Capabilities
+api_router.include_router(
+    ai_capabilities.router,
+    prefix="/ai-capabilities",
+    tags=["AI Capabilities"]
 )
