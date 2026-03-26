@@ -120,3 +120,5 @@ class SendMessageResponse(BaseModel):
     customer_message: MessageResponse
     ai_response: Optional[MessageResponse] = None
     ai_confidence: Optional[float] = None
+    confidence_score: Optional[float] = None
+    confidence_level: Optional[str] = None  # "high", "medium", "low"

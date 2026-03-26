@@ -45,9 +45,21 @@ class MessageResponse(BaseModel):
     content: str
     metadata: dict = Field(default_factory=dict)
     created_at: datetime
-    
+    confidence_score: Optional[float] = None
+    confidence_level: Optional[str] = None
+
     class Config:
         from_attributes = True
+
+
+def get_confidence_level(score: float) -> Optional[str]:
+    if score is None:
+        return None
+    if score >= 0.8:
+        return "high"
+    elif score >= 0.5:
+        return "medium"
+    return "low"
 
 
 # ============================================================================

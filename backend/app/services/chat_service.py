@@ -136,7 +136,8 @@ class ChatService:
         sender_type: SenderType,
         content: str,
         sender_id: Optional[uuid.UUID] = None,
-        ai_metadata: Optional[dict] = None
+        ai_metadata: Optional[dict] = None,
+        confidence_score: Optional[float] = None
     ) -> Message:
         """Add a message to a conversation."""
         message = Message(
@@ -145,6 +146,7 @@ class ChatService:
             sender_id=sender_id,
             content=content,
             ai_metadata=ai_metadata or {},
+            confidence_score=confidence_score,
         )
         self.db.add(message)
         await self.db.flush()
@@ -303,7 +305,8 @@ class ChatService:
                 conversation_id=conversation.id,
                 sender_type=SenderType.AI,
                 content=ai_response.content,
-                ai_metadata=ai_metadata
+                ai_metadata=ai_metadata,
+                confidence_score=ai_response.confidence_score,
             )
 
             # Log tool executions if any
@@ -419,7 +422,8 @@ class ChatService:
             conversation_id=str(message.conversation_id),
             sender_type=message.sender_type.value if hasattr(message.sender_type, 'value') else message.sender_type,
             content=message.content,
-            created_at=message.created_at
+            created_at=message.created_at,
+            confidence_score=getattr(message, 'confidence_score', None),
         )
 
     def format_conversation_response(self, conversation: Conversation) -> ConversationResponse:

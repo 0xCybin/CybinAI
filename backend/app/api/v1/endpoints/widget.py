@@ -22,6 +22,7 @@ from app.schemas.chat import (
     SendMessageRequest, SendMessageResponse,
     ConversationResponse
 )
+from app.schemas.conversation import get_confidence_level
 
 router = APIRouter()
 
@@ -255,10 +256,13 @@ async def send_widget_message(
             }
         )
 
+    confidence_score = getattr(ai_msg, 'confidence_score', None) if ai_msg else None
     return SendMessageResponse(
         customer_message=service.format_message_response(customer_msg),
         ai_response=service.format_message_response(ai_msg) if ai_msg else None,
-        ai_confidence=0.85 if ai_msg else None
+        ai_confidence=confidence_score,
+        confidence_score=confidence_score,
+        confidence_level=get_confidence_level(confidence_score) if confidence_score is not None else None,
     )
 
 
